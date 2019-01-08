@@ -19,13 +19,18 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 #include "../JuceLibraryCode/JuceHeader.h"
+/////////////////////////////////////////////////////////////////////////////
 
 #define UNUSED(x) x;
 #define xstr(s) str(s)
 #define str(s) #s
 
+/////////////////////////////////////////////////////////////////////////////
+
 String validateNote(String newNote);
 int validNoteNumber(String note);
+
+/////////////////////////////////////////////////////////////////////////////
 
 class TopiaryButton : public TextButton
 {
@@ -38,7 +43,10 @@ public:
 private:
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryButton)
-};
+
+};  // TopiaryButton
+
+/////////////////////////////////////////////////////////////////////////////
 
 class Topiary 
 {  public:
@@ -124,6 +132,8 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Topiary)
 }; // Topiary
 
+/////////////////////////////////////////////////////////////////////////////
+
 class TopiaryLookAndFeel : public LookAndFeel_V4
 { 
 public:
@@ -138,6 +148,9 @@ private:
 		
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryLookAndFeel)
 }; // TopiaryLookAndFeel
+
+
+/////////////////////////////////////////////////////////////////////////////
 
 class TopiaryColour
 {
@@ -157,18 +170,9 @@ public:
 private:
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryColour)
+
 }; // TopiaryColour
 
-//////////////////////////////////////////////////////////////////////////
-// Common helper code
-//////////////////////////////////////////////////////////////////////////
-
-void addIntToModel(XmlElement *p, int i, char* iname);
-void addIntToModel(XmlElement *p, int i, char* iname, int index);
-void addBoolToModel(XmlElement *p, bool b, char* bname);
-void addBoolToModel(XmlElement *p, bool b, char* bname, int index);
-void addStringToModel(XmlElement *p, String value, char* sname);
-void addStringToModel(XmlElement *p, String value, char* sname, int index);
-
+/////////////////////////////////////////////////////////////////////////////
 
 

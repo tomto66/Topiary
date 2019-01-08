@@ -1,6 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
 /*
-This file is part of Topiary, Copyright Tom Tollenaere 2018-19.
+This file is part of Topiary, Copyright Tom Tollenaere 2018-2019.
 
 Topiary is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,14 +13,21 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Topiary. If not, see <https://www.gnu.org/licenses/>.
+
+/////////////////////////////////////////////////////////////////////////////
+
+This code has a generic transport component that can be included in every Topiary plugin.
+
+CAREFUL: needs symbols:
+- TOPIARYMODEL e.g. TOPIARYMODEL
+- TOPIARYTRANSPORTCOMPONENT e.g. TopiaryPresetzTransportComponent (a class definition)
+
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "TopiaryTransportComponent.h"
+#ifdef TOPIARYTRANSPORTCOMPONENT
 
-TopiaryTransportComponent::TopiaryTransportComponent()
+TOPIARYTRANSPORTCOMPONENT::TOPIARYTRANSPORTCOMPONENT()
 {
 	setSize(width, height);
 	startButton.setLookAndFeel(&topiaryLookAndFeel);
@@ -112,7 +118,7 @@ TopiaryTransportComponent::TopiaryTransportComponent()
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent::updateToggleState(TextButton* button)
+void TOPIARYTRANSPORTCOMPONENT::updateToggleState(TextButton* button)
 {
 	auto state = button->getToggleState();
 	String stateString = state ? "ON" : "OFF";
@@ -120,23 +126,23 @@ void TopiaryTransportComponent::updateToggleState(TextButton* button)
 
 	//Logger::outputDebugString(" Button " + button->getButtonText() + "  changed to " + stateString);
 
-}
+} // updateToggleState
 
 /////////////////////////////////////////////////////////////////////////
 
-TopiaryTransportComponent::~TopiaryTransportComponent()
+TOPIARYTRANSPORTCOMPONENT::~TOPIARYTRANSPORTCOMPONENT()
 {
 }
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent::resized()
+void TOPIARYTRANSPORTCOMPONENT::resized()
 {
 }
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent::paint(Graphics& g) {
+void TOPIARYTRANSPORTCOMPONENT::paint(Graphics& g) {
 	
 	int lineSize = 2;
 	int labelOffset = 15;
@@ -172,7 +178,13 @@ void TopiaryTransportComponent::paint(Graphics& g) {
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent:: setOverride(bool override)
+void TOPIARYTRANSPORTCOMPONENT::setModel(TOPIARYMODEL *m)
+{
+	model = m;
+}
+/////////////////////////////////////////////////////////////////////////
+
+void TOPIARYTRANSPORTCOMPONENT:: setOverride(bool override)
 
 { // disable components when host is overridden and vice versa
   // does not call the model; is called from the derived class instead! - do not call directly!! (should be private, really ?) 
@@ -198,7 +210,7 @@ void TopiaryTransportComponent:: setOverride(bool override)
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent::updateState(bool override, int bpm, int n, int d, int state, bool showRecordButton)
+void TOPIARYTRANSPORTCOMPONENT::updateState(bool override, int bpm, int n, int d, int state, bool showRecordButton)
 // updates the whole state: value of override will enabele/disable buttons
 // values of fields are simply set
 {
@@ -242,20 +254,43 @@ void TopiaryTransportComponent::updateState(bool override, int bpm, int n, int d
 	default: break;
 	}
 
-
-
-	
 }  // updateState
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryTransportComponent::processUIChanges(bool override, int& n, int& d, int& bpm, int buttonEnabled)
+void TOPIARYTRANSPORTCOMPONENT::processUIChanges(bool override, int& n, int& d, int& bpm, int buttonEnabled) // buttonEnabled; 0=Stop; 1=start; 2=rec
+// override of virtual function; we get the (new?) values from the component and update the model
 {
-	UNUSED(override)
-	UNUSED(n)
-	UNUSED(d)
-	UNUSED(bpm)
-	UNUSED(buttonEnabled)
-	// virtual function!
+	if (!bpm) bpm = 120;
+	if (!n) n = 4;
+	if (!d) d = 4;
+
+	model->setBPM(bpm);
+	model->setNumeratorDenominator(n, d);
+	model->setOverrideHostTransport(override);
+	if (override) {
+		model->processTransportControls(buttonEnabled);
+	}
+	//checkModel(); // to catch e.g. bad tempo input - will be done by means of messagelistener!
+
 } // processUIChanges
 
+/////////////////////////////////////////////////////////////////////////
+
+void TOPIARYTRANSPORTCOMPONENT::checkModel()
+{
+	int BPM;
+	int n, d;
+	int transportState;
+	bool override;
+	bool waitFFN;
+	model->getTransportState(BPM, n, d, transportState, override, waitFFN);
+	updateState(override, BPM, n, d, transportState, true); // the true shows the record button
+
+
+} // checkModel
+
+/////////////////////////////////////////////////////////////////////////
+
+
+#endif

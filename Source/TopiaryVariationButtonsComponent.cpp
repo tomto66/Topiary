@@ -1,6 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
 /*
-This file is part of Topiary, Copyright Tom Tollenaere 2018-19.
+This file is part of Topiary, Copyright Tom Tollenaere 2018-2019.
 
 Topiary is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,14 +13,21 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Topiary. If not, see <https://www.gnu.org/licenses/>.
+
+/////////////////////////////////////////////////////////////////////////////
+
+This code has a generic transport component that can be included in every Topiary plugin.
+
+CAREFUL: needs symbols:
+- TOPIARYMODEL e.g. TOPIARYMODEL
+- TOPIARYVARIATIONBUTTONSCOMPONENT e.g. TopiaryPresetzVariationButtonsComponent (a class definition)
+
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "TopiaryVariationButtonsComponent.h"
+#ifdef TOPIARYMODEL
 
-TopiaryVariationButtonsComponent::TopiaryVariationButtonsComponent()
+TOPIARYVARIATIONBUTTONSCOMPONENT::TOPIARYVARIATIONBUTTONSCOMPONENT()
 {
 	setSize(width, height);
 
@@ -50,32 +56,23 @@ TopiaryVariationButtonsComponent::TopiaryVariationButtonsComponent()
 	variationButton[6]->onClick = [this] { updateToggleState(variationButton[6]); };
 	variationButton[7]->onClick = [this] { updateToggleState(variationButton[7]); };
 	
-} // TopiaryVariationButtonsComponent()
+} // TOPIARYVARIATIONBUTTONSCOMPONENT()
 
 /////////////////////////////////////////////////////////////////////////
 
-TopiaryVariationButtonsComponent::~TopiaryVariationButtonsComponent()
+TOPIARYVARIATIONBUTTONSCOMPONENT::~TOPIARYVARIATIONBUTTONSCOMPONENT()
 {
-} //~TopiaryVariationButtonsComponent
+} //~TOPIARYVARIATIONBUTTONSCOMPONENT
  
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryVariationButtonsComponent::resized()
+void TOPIARYVARIATIONBUTTONSCOMPONENT::resized()
 {
 } // resized
 
 /////////////////////////////////////////////////////////////////////////
 
-void TopiaryVariationButtonsComponent::updateToggleState(TextButton* button)
-{   
-	// Virtual method; need a version with a model to function properly!!!
-	UNUSED(button)
-
-} // updateToggleState
-
-/////////////////////////////////////////////////////////////////////////
-
-void TopiaryVariationButtonsComponent::paint(Graphics& g) {
+void TOPIARYVARIATIONBUTTONSCOMPONENT::paint(Graphics& g) {
 	// size = 340 * 45
 	int w = width; 
 	int h = height; 
@@ -101,7 +98,7 @@ void TopiaryVariationButtonsComponent::paint(Graphics& g) {
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void TopiaryVariationButtonsComponent::selectButton(int running, int selected)
+void TOPIARYVARIATIONBUTTONSCOMPONENT::selectButton(int running, int selected)
 {  
 	jassert((selected >= 0) && (selected < 8));
 	jassert((running >= 0) && (running < 8));
@@ -119,10 +116,56 @@ void TopiaryVariationButtonsComponent::selectButton(int running, int selected)
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void TopiaryVariationButtonsComponent::enableButton(int i, bool enable)
+void TOPIARYVARIATIONBUTTONSCOMPONENT::enableButton(int i, bool enable)
 {
 	variationButton[i]->setEnabled(enable);
 
 } // enableButton
 
 /////////////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPresetzVariationButtonsComponent::setModel(TopiaryPresetzModel *m)
+{
+	model = m;
+	getEnabled();  // see if there are disabled variationbuttons
+} // setModel
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPresetzVariationButtonsComponent::updateToggleState(TextButton* button)
+{
+	String buttonText = button->getButtonText();
+	model->setVariation(buttonText.getIntValue() - 1);
+} // updateToggleState
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPresetzVariationButtonsComponent::checkModel()
+{  // Called by the HeaderComponent timer to check whether the model has changed; if so adapt accordingly
+
+	int running;
+	int selected;
+	model->getVariation(running, selected);
+	if (selected == running)
+		selectButton(running, running);
+	else
+		selectButton(selected, running);
+
+} // checkModel
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPresetzVariationButtonsComponent::getEnabled()
+{
+	bool enables[8];
+	model->getVariationEnables(enables);
+	for (int i = 0; i < 8; i++)
+		enableButton(i, enables[i]);
+
+} // getEnabled
+
+/////////////////////////////////////////////////////////////////////////////
+
+#endif
+
+

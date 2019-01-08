@@ -1,6 +1,5 @@
-/////////////////////////////////////////////////////////////////////////////
 /*
-This file is part of Topiary, Copyright Tom Tollenaere 2018-19.
+This file is part of Topiary, Copyright Tom Tollenaere 2018-2019.
 
 Topiary is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -14,29 +13,36 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Topiary. If not, see <https://www.gnu.org/licenses/>.
+
+/////////////////////////////////////////////////////////////////////////////
+
+This code has a generic transport component that can be included in every Topiary plugin.
+
+CAREFUL: needs symbols:
+- TOPIARYMODEL e.g. TOPIARYMODEL
+- TOPIARYTRANSPORTCOMPONENT e.g. TopiaryPresetzTransportComponent (a class definition)
+
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "Topiary.h"
+#ifdef TOPIARYTRANSPORTCOMPONENT
 
-
-class TopiaryTransportComponent : public Component
+class TOPIARYTRANSPORTCOMPONENT : public Component
 {
 public:
-	TopiaryTransportComponent();
-	~TopiaryTransportComponent();
+	TOPIARYTRANSPORTCOMPONENT();
+	~TOPIARYTRANSPORTCOMPONENT();
 	void paint(Graphics& g) override;
 	void resized() override;
-	virtual void setOverride(bool override);
+	void setOverride(bool override);
 	void updateToggleState(TextButton*);
 	void updateState(bool override, int bpm, int n, int d, int state, bool showRecordButton);
-	virtual void processUIChanges(bool override, int& n, int& d, int& bpm, int buttonEnabled);
-
+	void processUIChanges(bool override, int& n, int& d, int& bpm, int buttonEnabled);
+	void setModel(TOPIARYMODEL *m);
+	void checkModel();
 private:
 	TopiaryLookAndFeel topiaryLookAndFeel;
-
+	TOPIARYMODEL* model;
 	int buttonW = 30;
 	int buttonH = 15;
 	int width = 350;
@@ -53,8 +59,6 @@ private:
 	int bpmW = 30;
 	TextEditor numeratorEditor, denominatorEditor;
 	int sigW = 15;
-	
-	
 	int signatureW = 55;
 	
 	void callProcessUIChanges()
@@ -79,5 +83,7 @@ private:
 
 	};
 
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryTransportComponent)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TOPIARYTRANSPORTCOMPONENT)
 }; // end of Class
+
+#endif
