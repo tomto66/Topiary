@@ -75,7 +75,6 @@ void TopiaryModel::loadPreset(File f)
 TopiaryModel::TopiaryModel()
 {
 	filePath = "";
-
 	logString = "";
 	
 	overrideHostTransport = false;
@@ -284,7 +283,16 @@ void TopiaryModel::logMidi(bool in, MidiMessage &msg)
 	{
 		if (!logMidiIn) return;
 		if (msg.isNoteOff() || msg.isNoteOn())
-			Log(String("MIDI in: ") + msg.getDescription(), Topiary::LogType::MidiIn);
+		{
+			int chan = msg.getChannel();
+			int velo = msg.getVelocity();
+			int  note = msg.getNoteNumber();
+
+			if (msg.isNoteOff())
+				Log(String("MIDI in: ") + "Note off "+ MidiMessage::getMidiNoteName(note, true, true, 5) +" Velocity "+String(velo)+" Channel"+String(chan) + ".", Topiary::LogType::MidiIn);
+			else
+				Log(String("MIDI in: ") + "Note on " + MidiMessage::getMidiNoteName(note, true, true, 5) + " Velocity " + String(velo) + " Channel" + String(chan) + ".", Topiary::LogType::MidiIn);
+		}
 		else
 		{
 			if (msg.isController())
@@ -296,7 +304,14 @@ void TopiaryModel::logMidi(bool in, MidiMessage &msg)
 		if (!logMidiOut) return;
 		if (msg.isNoteOff() || msg.isNoteOn())
 		{
-			Log(String("MIDI out: ") + msg.getDescription(), Topiary::LogType::MidiOut);
+			int chan = msg.getChannel();
+			int velo = msg.getVelocity();
+			int  note = msg.getNoteNumber();
+
+			if (msg.isNoteOff())
+				Log(String("MIDI out: ") + "Note off " + MidiMessage::getMidiNoteName(note, true, true, 5) + " Velocity " + String(velo) + " on Channel" + String(chan)+".", Topiary::LogType::MidiIn);
+			else
+				Log(String("MIDI out: ") + "Note on " + MidiMessage::getMidiNoteName(note, true, true, 5) + " Velocity " + String(velo) + " on Channel" + String(chan) + ".", Topiary::LogType::MidiIn);
 		}
 		else
 		{
@@ -405,7 +420,7 @@ void TopiaryModel::setRunState(int n)
 		{
 		case  Topiary::Running:
 			Log("Start running.", Topiary::LogType::Transport);
-			Logger::outputDebugString("RTcur to 0");
+			//Logger::outputDebugString("RTcur to 0");
 			// initialize the patterncursor
 			patternCursor = 0;
 			blockCursor = 0;
@@ -676,6 +691,7 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 		rtCursor = 0;
 		patternCursor = 0;
 		rtCursorFrom = 0;
+		patternCursorOffset = 0;
 		rtCursorTo = rtCursorFrom + blockSize;
 		nextRTGenerationCursor = 0;
 		measure = 0;
@@ -726,11 +742,8 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 	int CC = 0;
 	int value = 0;
 
-	// normally next line does nothing, because the child should already be where expected
-	// when switching variations mid-pattern this may actually do something
-
-	patternCursor = (int)patternCursor % parentLength;  //////// because rtCursors are multi loops !!!!
-	DEBUGpatCursor = (int)DEBUGpatCursor % parentLength;
+	patternCursor = (int)patternCursor % parentLength;  
+	//DEBUGpatCursor = (int)DEBUGpatCursor % parentLength;
 
 	//Logger::outputDebugString("Next note on to generate afer current tick " + String(patternCursor));
 
@@ -739,7 +752,6 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 	if (!ending || (ending && !ended))
 	{
 		walk = walkToTick(parent, &noteChild, patternCursor);
-		//jassert((walk) && (patternCursor <=14));
 	}
 	else
 		walk = false; // meaning an ending variation and ended
@@ -750,10 +762,10 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 	{
 		// set patternCursors where we are now, so the offsets in sample time are correct
 		patternCursor = (int)patternCursor % parentLength;  //////// because rtCursors are multi loops !!!!
-		Logger::outputDebugString("PatternCursor = " + String(patternCursor));
-		Logger::outputDebugString("DEBUGPatternCursor = " + String(DEBUGpatCursor));
-		Logger::outputDebugString("PatternCursorOffset = " + String(patternCursorOffset));
-		Logger::outputDebugString("Blockcursor ; " + String(blockCursor));
+		//Logger::outputDebugString("PatternCursor = " + String(patternCursor));
+		//Logger::outputDebugString("DEBUGPatternCursor = " + String(DEBUGpatCursor));
+		//Logger::outputDebugString("PatternCursorOffset = " + String(patternCursorOffset));
+		//Logger::outputDebugString("Blockcursor ; " + String(blockCursor));
 		//calcMeasureBeat();
 
 		while (rtCursor < rtCursorTo)
@@ -770,7 +782,7 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 					// this is an ending variation and it has now ended
 					ended = true;
 					setEnded();
-					Log("Ended ---------------------------------------", Topiary::LogType::Variations);
+					//Log("Ended ---------------------------------------", Topiary::LogType::Variations);
 					rtCursor = rtCursorTo; // prevent next if to pass so nothing further is generated
 				}
 
@@ -782,7 +794,6 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 			{
 				//Logger::outputDebugString("GENERATING A NOTE ------------>");
 				//Logger::outputDebugString(String("Next Patcursor ") + String(nextPatternCursor));
-
 
 				////// GENERATE MIDI EVENT
 				int midiType = noteChild->getIntAttribute("midiType");
@@ -798,10 +809,10 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 
 					// DEBUG LOGIC !!!!!!!!!
 					// outputting the pattern tick values + the tick value in the generated pattern
-					//int64 cursorInTicks = (int64)floor( (rtCursor + (int64)(ticksTaken*samplesPerTick) ) / samplesPerTick    );  
+					// int64 cursorInTicks = (int64)floor( (rtCursor + (int64)(ticksTaken*samplesPerTick) ) / samplesPerTick    );  
 					// now do that modulo the patternlenght in ticks
-					//cursorInTicks = cursorInTicks % parentLength;
-					//Logger::outputDebugString("Generated note at realtime pat tick " + String(cursorInTicks) + " / tick in pattern " + String(noteChildOn->getStringAttribute("Timestamp")));
+					// cursorInTicks = cursorInTicks % parentLength;
+					// Logger::outputDebugString("Generated note at realtime pat tick " + String(cursorInTicks) + " / tick in pattern " + String(noteChildOn->getStringAttribute("Timestamp")));
 					/////////////////////////
 
 				}
@@ -838,7 +849,7 @@ void TopiaryModel::generateMidi(MidiBuffer* midiBuffer)
 				// let's place ourselves ready for the next round
 				// so either walkOn and we have the next On note ready
 				// or walkOff and next Off note ready as well
-				// main goal is to set nextRTgenerationCursor!
+				// main goal is to set nextPatternCursor!
 
 				//Logger::outputDebugString(String(" ++++++++++++++ done +++++++++++++++++++++"));
 

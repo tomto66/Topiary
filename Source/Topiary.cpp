@@ -219,6 +219,7 @@ int validNoteNumber(String inNote)
 	char note = ' ';
 	int octave = -1;
 	char sharp = '!';
+	int number=0;
 
 	if (inNote.length() == 2)
 	{
@@ -229,15 +230,34 @@ int validNoteNumber(String inNote)
 		sscanf((char*)c, "%1c%1c%d", &note, &sharp, &octave);
 	}
 
-	int number = (int)note - 'C'; // C0 is note 0
-	if (sharp == '#') number++;
+	switch ((int)note)
+	{
+	case (int)'C': number = 0;
+		break;
+	case (int)'D': number = 2;
+		break;
+	case (int)'E': number = 4;
+		break;
+	case (int)'F': number = 5;
+		break;
+	case (int)'G': number = 7;
+		break;
+	case (int)'A': number = 9;
+		break;
+	case (int)'B': number = 11;
+		break;
+	default: jassert(0);
 
+	}
+
+	if (sharp == '#') number++;
 	number = number + (12 * octave);
 
 	//Logger::outputDebugString(String("input ") + String(inNote));
 	//Logger::outputDebugString(String("output ") + String(number));
 
 	return number;
+
 }  // validNoteNumber
 
 //////////////////////////////////////////////////////////////////////////

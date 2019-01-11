@@ -103,7 +103,7 @@ TOPIARYLOGCOMPONENT::~TOPIARYLOGCOMPONENT()
 
 /////////////////////////////////////////////////////////////////////////
 
-void TOPIARYLOGCOMPONENT::setModel(TopiaryPresetzModel* m)
+void TOPIARYLOGCOMPONENT::setModel(TOPIARYMODEL* m)
 {
 	model = m;
 	model->setListener((ActionListener*)this);

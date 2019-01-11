@@ -124,7 +124,7 @@ void TOPIARYVARIATIONBUTTONSCOMPONENT::enableButton(int i, bool enable)
 
 /////////////////////////////////////////////////////////////////////////////////////
 
-void TopiaryPresetzVariationButtonsComponent::setModel(TopiaryPresetzModel *m)
+void TOPIARYVARIATIONBUTTONSCOMPONENT::setModel(TOPIARYMODEL *m)
 {
 	model = m;
 	getEnabled();  // see if there are disabled variationbuttons
@@ -132,7 +132,7 @@ void TopiaryPresetzVariationButtonsComponent::setModel(TopiaryPresetzModel *m)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void TopiaryPresetzVariationButtonsComponent::updateToggleState(TextButton* button)
+void TOPIARYVARIATIONBUTTONSCOMPONENT::updateToggleState(TextButton* button)
 {
 	String buttonText = button->getButtonText();
 	model->setVariation(buttonText.getIntValue() - 1);
@@ -140,7 +140,7 @@ void TopiaryPresetzVariationButtonsComponent::updateToggleState(TextButton* butt
 
 /////////////////////////////////////////////////////////////////////////////
 
-void TopiaryPresetzVariationButtonsComponent::checkModel()
+void TOPIARYVARIATIONBUTTONSCOMPONENT::checkModel()
 {  // Called by the HeaderComponent timer to check whether the model has changed; if so adapt accordingly
 
 	int running;
@@ -155,7 +155,7 @@ void TopiaryPresetzVariationButtonsComponent::checkModel()
 
 /////////////////////////////////////////////////////////////////////////////
 
-void TopiaryPresetzVariationButtonsComponent::getEnabled()
+void TOPIARYVARIATIONBUTTONSCOMPONENT::getEnabled()
 {
 	bool enables[8];
 	model->getVariationEnables(enables);

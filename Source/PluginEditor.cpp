@@ -17,40 +17,43 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 
 /////////////////////////////////////////////////////////////////////////////
 
-This code has a generic automation component that can be included in every Topiary plugin.
+This code has a generic editor component that can be included in every Topiary plugin.
 
 CAREFUL: needs symbols:
 - TOPIARYMODEL e.g. TOPIARYMODEL
-- TOPIARYAUTOMATIONCOMPONENT e.g. TopiaryPresetzAutomationComponent (a class definition)
+- TOPIARYEDITORCOMPONENT - e.g. TopiaryPresetsComponent
 
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef TOPIARYAUTOMATIONCOMPONENT
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+//#include "TopiaryPresetzComponent.h"
 
-class TOPIARYAUTOMATIONCOMPONENT : public Component, ActionListener
+#ifdef TOPIARYMODEL
+
+
+TopiaryAudioProcessorEditor::TopiaryAudioProcessorEditor (TopiaryAudioProcessor& p)
+    : AudioProcessorEditor (&p), processor (p)
 {
-public:
-	TOPIARYAUTOMATIONCOMPONENT();
-	~TOPIARYAUTOMATIONCOMPONENT();
+	setSize(TopiaryPresetzComponent::width, TopiaryPresetzComponent::heigth);
+	model = processor.getModel();
+	topiaryEditorComponent.setModel(model);
+	addAndMakeVisible(topiaryEditorComponent);
+}
 
-	void paint(Graphics&) override;
-	void resized() override;
-	void setModel(TOPIARYMODEL* m);
-	void actionListenerCallback(const String &message) override;
-	void getVariationControl();
-	void setVariationControl();
+TopiaryAudioProcessorEditor::~TopiaryAudioProcessorEditor()
+{
+}
 
-private:
-	TOPIARYMODEL* model;
+void TopiaryAudioProcessorEditor::paint (Graphics& g)
+{
+	UNUSED(g)
+	topiaryEditorComponent.setBounds(getLocalBounds());
+}
 
-	TopiaryButton notesButton;
-	TopiaryButton ccButton;
-	TextEditor variationChannelEditor;
-	TextEditor variationControlEditor[8];
-
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TOPIARYAUTOMATIONCOMPONENT)
-};
-
+void TopiaryAudioProcessorEditor::resized()
+{
+    
+}
 #endif
-/////////////////////////////////////////////////////////////////////

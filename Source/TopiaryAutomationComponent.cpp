@@ -65,6 +65,7 @@ TOPIARYAUTOMATIONCOMPONENT::TOPIARYAUTOMATIONCOMPONENT()
 	for (int i = 0; i < 8; i++)
 	{
 		addAndMakeVisible(variationControlEditor[i]);
+		variationControlEditor[i].setSelectAllWhenFocused(true);
 		variationControlEditor[i].onFocusLost = [this]
 		{
 			setVariationControl();

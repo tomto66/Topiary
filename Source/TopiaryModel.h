@@ -116,6 +116,7 @@ public:
 #define MsgPattern "p"
 #define MsgTiming "T"
 #define MsgMaster "m"
+#define MsgVariationDefinition "d" // 
 #define MsgRealTimeParameter "r" // signal that something in realtime needs updating in editor
 
 	////////// Automation
@@ -181,6 +182,9 @@ protected:
 	int tick = 0;						// keep track of where we are in generation
 	int64 cursorToStop = -1;			// used when running, set once, to cursor where we should stop; needs to be set to -1 when running stops (typically in processEnding() but also when arming 
 	int patternCursorOffset = 0;		// used in conjunction with switchVariation; the offset of the patterncursor with respect to the blockCursor
+
+	int transitioningFrom = -1;  // set when we are generating
+	int transitioningTo = -1;
 
 	int threadRunnerState; // NothingToDo --> Generating --> DoneGenerating (and back to nothingToGenerate when what was generated was applied (for presetz only for now)
 
@@ -350,6 +354,7 @@ protected:
 		int64 cursorInTicks = (int64)floor(blockCursor / samplesPerTick);  // use BlockCursor instead of rtCursor as rtCursor might jump back & forth
 		int newMeasure = (int)floor(cursorInTicks / (ticksPerBeat* denominator)) + 1;
 
+		tick = cursorInTicks % Topiary::TICKS_PER_QUARTER;
 		int newBeat = (int)floor(cursorInTicks / ticksPerBeat);
 		newBeat = (newBeat % denominator) + 1;
 
@@ -382,13 +387,12 @@ protected:
 	///////////////////////////////////////////////////////////////////////
 
 	bool walkToTick(XmlElement* parent, XmlElement** child, int toTick)
-	{ // find the first child on or after this tick, starting from current child; 
-	  // caller has to make sure that child is child of parent, or pass nullptr to initialize
-	  // return false if pattern is empty or nothing to do within the blockSize; if empty then child == nullptr; 
-	  // This loops around the pattern! To avoid infinite loop, take blockSize into account; only loop over pattern
-	  // if the amount of ticks walked is less than blocksize
-
-		// DOES NOT TAKE LIMITED PATTERN LENGTH INTO ACCOUNT (yet) - we will do that in the variations later -- NO THE VARIATION WILL BE AS LONG AS THE BASE PATTERN
+	{ 
+		// find the first child on or after this tick, starting from current child; 
+		// caller has to make sure that child is child of parent, or pass nullptr to initialize
+		// return false if pattern is empty or nothing to do within the blockSize; if empty then child == nullptr; 
+		// This loops around the pattern! To avoid infinite loop, take blockSize into account; only loop over pattern
+		// if the amount of ticks walked is less than blocksize
 
 		int childTick;
 

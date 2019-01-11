@@ -17,40 +17,37 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 
 /////////////////////////////////////////////////////////////////////////////
 
-This code has a generic automation component that can be included in every Topiary plugin.
+This code has a generic editor component that can be included in every Topiary plugin.
 
 CAREFUL: needs symbols:
 - TOPIARYMODEL e.g. TOPIARYMODEL
-- TOPIARYAUTOMATIONCOMPONENT e.g. TopiaryPresetzAutomationComponent (a class definition)
+- TOPIARYEDITORCOMPONENT - e.g. TopiaryPresetsComponent
 
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef TOPIARYAUTOMATIONCOMPONENT
+#pragma once
+#include "PluginProcessor.h"
+//#include "TopiaryPresetzComponent.h"
 
-class TOPIARYAUTOMATIONCOMPONENT : public Component, ActionListener
+#ifdef TOPIARYMODEL
+
+class TopiaryAudioProcessorEditor  : public AudioProcessorEditor
 {
 public:
-	TOPIARYAUTOMATIONCOMPONENT();
-	~TOPIARYAUTOMATIONCOMPONENT();
+    TopiaryAudioProcessorEditor (TopiaryAudioProcessor&);
+    ~TopiaryAudioProcessorEditor();
 
-	void paint(Graphics&) override;
-	void resized() override;
-	void setModel(TOPIARYMODEL* m);
-	void actionListenerCallback(const String &message) override;
-	void getVariationControl();
-	void setVariationControl();
+    void paint (Graphics&) override;
+    void resized() override;
 
 private:
+    
+    TopiaryAudioProcessor& processor;
 	TOPIARYMODEL* model;
+	TOPIARYEDITORCOMPONENT topiaryEditorComponent;
 
-	TopiaryButton notesButton;
-	TopiaryButton ccButton;
-	TextEditor variationChannelEditor;
-	TextEditor variationControlEditor[8];
-
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TOPIARYAUTOMATIONCOMPONENT)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TopiaryAudioProcessorEditor)
 };
 
 #endif
-/////////////////////////////////////////////////////////////////////

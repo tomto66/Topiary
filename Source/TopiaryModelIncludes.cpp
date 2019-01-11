@@ -23,7 +23,7 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 This code has generic stuff that can be included in every Topiary model code.
 It includes:
 - Variation logic (that depends on variation variables defined in the actual 
-  models (not in the generic TopiaryModel
+  models (not in the generic TopiaryModel))
 
 CAREFUL: needs a symbol TOPIARYMODEL to actually build!
 
@@ -36,6 +36,43 @@ void TOPIARYMODEL::setEnded()
 {
 	variation[variationRunning].ended = true;
 }
+
+///////////////////////////////////////////////////////////////////////
+
+void TOPIARYMODEL::getVariationEnables(bool enables[8])
+{
+	for (int i = 0; i < 8; i++)
+		enables[i] = variation[i].enabled;
+
+} // getVariationEnables
+
+///////////////////////////////////////////////////////////////////////
+
+int TOPIARYMODEL::getVariationLenInTicks(int v)
+{
+	return variation[v].lenInTicks;
+
+} // getVariationLenInTicks
+
+///////////////////////////////////////////////////////////////////////
+
+bool TOPIARYMODEL::getVariationEnabled(int v)
+{
+	return variation[v].enabled;
+
+} // getVariationEnabled
+
+///////////////////////////////////////////////////////////////////////
+
+void TOPIARYMODEL::getVariationDetailForGenerateMidi(XmlElement** parent, XmlElement** noteChild, int& parentLength, bool& ending, bool& ended)
+{
+	parentLength = variation[variationRunning].lenInTicks;
+	ending = variation[variationRunning].ending;
+	ended = variation[variationRunning].ended;
+	*parent = variation[variationRunning].pattern;
+	*noteChild = variation[variationRunning].currentPatternChild;
+
+} // getVariationDetailForGenerateMidi
 
 ///////////////////////////////////////////////////////////////////////
 
@@ -53,17 +90,19 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 	if (variationSelected == variationRunning) return false;
 	else
 	{
+#ifdef PRESETZ
 		if (threadRunnerState == Topiary::ThreadRunnerState::Generating)
 		{
-			Logger::outputDebugString(" WAITING FOR GENERATION ---------------------------------------------------------------------------------------------");
+			//Logger::outputDebugString(" WAITING FOR GENERATION ---------------------------------------------------------------------------------------------");
 			return false;  // for presetz only: we are still generating a transition; wait a bit
 		}
+#endif
 	}
 
 	if (blockCursor == 0)
 	{
 		runState = Topiary::Running;
-		Logger::outputDebugString("Starting - runstate is Armed but we need to go!");  // careful that the WFFN functonality keeps working!!!
+		//Logger::outputDebugString("Starting - runstate is Armed but we need to go!");  // careful that the WFFN functonality keeps working!!!
 		return true;
 	}
 	// in this case we want to start asap (unless we Q on the transport, but that is done in the call before this one!!!
@@ -84,7 +123,7 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 
 	//Logger::outputDebugString("Need to switch, now ???  Something is going to happen next");
 
-	int64 cursorToSwitch = 0;  // time the switch should happen; if nexRTcursor < ticksToSwith < blockCursor=blockSize then we know we want to switch;
+	int64 cursorToSwitch = 0;  // time the switch should happen; if  cursorToSwitch < blockCursor+blockSize then we know we want to switch;
 	//Logger::outputDebugString("VariationStartQ " + String(variationStartQ));
 
 	switch (variationStartQ)
@@ -92,7 +131,7 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 	case (Topiary::Immediate):
 	{
 		cursorToSwitch = blockCursor; // i.e. now
-		Logger::outputDebugString(String("IMMEDIATE Sel ") + String(variationSelected) + String(" Running ") + String(variationRunning));
+		//Logger::outputDebugString(String("IMMEDIATE Sel ") + String(variationSelected) + String(" Running ") + String(variationRunning));
 		break;
 	}
 	case (Topiary::Measure):
@@ -109,13 +148,14 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 		//Logger::outputDebugString(String("QUARTER Sel ") + String(variationSelected) + String(" Running ") + String(variationRunning));
 		break;
 	}
-	case (Topiary::Half):
-	{
+	//case (Topiary::Half):
+	//{
 		// moment of next beat = blockCursor + time to next beat (ticksperquarter - tick) 
-		cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TICKS_PER_QUARTER - tick - 1) + Topiary::TICKS_PER_QUARTER));
-		//Logger::outputDebugString(String("IMMEDIATE Half ") + String(variationSelected) + String(" Running ") + String(variationRunning));
-		break;
-	}
+	//	cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TICKS_PER_QUARTER - tick - 1) + Topiary::TICKS_PER_QUARTER));
+	//	//Logger::outputDebugString(String("IMMEDIATE Half ") + String(variationSelected) + String(" Running ") + String(variationRunning));
+	//	break;
+	//}
+	default: jassert(false);
 
 	} // switch
 	//Logger::outputDebugString(String("BlockCursor ") + String(blockCursor));
@@ -135,14 +175,20 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 		{
 		case (Topiary::SwitchFromStart): 
 			patternCursorOffset = patternCursor;
-			Logger::outputDebugString("PatternCursorOffset in PROCESSVARIATIONSWITCH: " + String(patternCursorOffset));
-				Logger::outputDebugString("Blockcursor ; " + String(blockCursor));
+			//Logger::outputDebugString("PatternCursorOffset in PROCESSVARIATIONSWITCH: " + String(patternCursorOffset));
+			//Logger::outputDebugString("Blockcursor ; " + String(blockCursor));
 			break;
-		case (Topiary::SwitchWithinBeat): patternCursor = patternCursor % Topiary::TICKS_PER_QUARTER;
+		case (Topiary::SwitchWithinBeat): 
+			patternCursorOffset = 0;
+			patternCursor = patternCursor % Topiary::TICKS_PER_QUARTER;
 			break;
-		case (Topiary::SwitchWithinMeasure): patternCursor = patternCursor % (Topiary::TICKS_PER_QUARTER*numerator);
+		case (Topiary::SwitchWithinMeasure): 
+			patternCursorOffset = 0;
+			patternCursor = patternCursor % (Topiary::TICKS_PER_QUARTER*numerator);
 			break;
-		case (Topiary::SwitchWithinPattern):	patternCursor = patternCursor % (getVariationLenInTicks(variationSelected));
+		case (Topiary::SwitchWithinPattern):	
+			patternCursorOffset = 0;
+			patternCursor = patternCursor % (getVariationLenInTicks(variationSelected));
 			break;
 		}
 
@@ -165,7 +211,7 @@ bool TOPIARYMODEL::switchingVariations()
 {
 	bool switching = (variationRunning != variationSelected);
 	
-	// following only for Presetz
+#ifdef PRESETZ	
 	if (switching)
 	{
 		if (threadRunnerState == Topiary::ThreadRunnerState::NothingToDo)
@@ -178,12 +224,9 @@ bool TOPIARYMODEL::switchingVariations()
 			topiaryThread.notify();  // we notify the thread that we need to generate a transition 
 		}	
 	}
-	
+#endif
 
-	if (transitioningFrom)
-	{
 
-	}
 	return switching;
 
 } // switchingVariations
