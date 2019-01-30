@@ -36,7 +36,7 @@ CAREFUL: needs symbols:
 TopiaryAudioProcessorEditor::TopiaryAudioProcessorEditor (TopiaryAudioProcessor& p)
     : AudioProcessorEditor (&p), processor (p)
 {
-	setSize(TopiaryPresetzComponent::width, TopiaryPresetzComponent::heigth);
+	setSize(TOPIARYEDITORCOMPONENT::width, TOPIARYEDITORCOMPONENT::heigth);
 	model = processor.getModel();
 	topiaryEditorComponent.setModel(model);
 	addAndMakeVisible(topiaryEditorComponent);

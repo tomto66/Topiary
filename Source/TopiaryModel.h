@@ -30,8 +30,8 @@ public:
 	TopiaryModel();
 	~TopiaryModel();
 
-	virtual void savePreset(File f);
-	virtual void loadPreset(File f);
+	void savePreset(String msg, String extension);
+	void loadPreset(String msg, String extension);
 	virtual void saveStateToMemoryBlock(MemoryBlock& destData);
 	virtual void restoreStateFromMemoryBlock(const void* data, int sizeInBytes);
 	virtual void addParametersToModel();
@@ -55,7 +55,7 @@ public:
 	void setBPM(int bpm);
 	void setNumeratorDenominator(int n, int d);
 	void getTransportState(int& b, int& n, int& d, int& bs, bool& o, bool &waitFFN);
-	void setOverrideHostTransport(bool o);
+	virtual void setOverrideHostTransport(bool o);
 	void removeRecordButton();
 	void setRunState(int n);
 	int getRunState();
@@ -74,11 +74,11 @@ public:
 	void setBlockSize(int blocksz);
 	void setStartTimes();
 	void endNotesOn(MidiBuffer* midiBuffer);
-	void generateMidi(MidiBuffer* midiBuffer);
+	
 	bool processEnding();
 	void outputModelEvents(MidiBuffer& buffer);		// see if anything needs to be done by model; e.g. output non-generation stuff like CC messages (can be out-IFDEFed for plugins that don't need it
 	virtual void outputVariationEvents();			// potentially generate events when variation button is pressed (outside of running) - certainly needed for presetz
-
+	virtual void generateMidi(MidiBuffer* midiBuffer);
 	virtual bool processVariationSwitch();
 	virtual bool switchingVariations();
 	virtual void getVariationDetailForGenerateMidi(XmlElement** parent, XmlElement** noteChild, int& parentLength, bool& ending, bool& ended);
@@ -126,6 +126,7 @@ public:
 	void processAutomation(MidiMessage& msg);
 	virtual void processCC(MidiMessage& msg, MidiBuffer* midiBuffer) ;
 	virtual void processCC(MidiMessage& msg);
+
 protected:
 
 	SpinLock lockModel;
@@ -144,13 +145,13 @@ protected:
 	bool logMidiIn = false;
 	bool logMidiOut = false;
 	bool logDebug = false;
-	bool logTransport = true;
-	bool logVariations = true;
-	bool logInfo = true;
+	bool logTransport = false;
+	bool logVariations = false;
+	bool logInfo = false;
 	
 	/////////// Transport
 
-	bool overrideHostTransport;
+	bool overrideHostTransport = true;
 	int denominator = 0; // b in a/b
 	int numerator = 0;  // a in a/b
 	int BPM = 120;
@@ -169,7 +170,7 @@ protected:
 	int64 nextRTGenerationCursor;		// real time cursor of next event to generate
 	int blockSize;						// size of block to generate 
 	int patternCursor;					// patternCursor  to disappear in the future
-	int numPatterns;					// set to 1 in Presetz
+	int numPatterns = -1;				// set to 1 in Presetz (as long as it's not -1 in presetz :)
 	int variationStartQ = Topiary::Quantization::Immediate;			// when to switch variations
 	int runStopQ = Topiary::Quantization::Immediate;				// when to stop running
 	bool WFFN = false;												// start at first note in if true; otherwize immediate
@@ -186,7 +187,7 @@ protected:
 	int transitioningFrom = -1;  // set when we are generating
 	int transitioningTo = -1;
 
-	int threadRunnerState; // NothingToDo --> Generating --> DoneGenerating (and back to nothingToGenerate when what was generated was applied (for presetz only for now)
+	int threadRunnerState; // NothingToDo --> Generating --> DoneGenerating (and back to nothingToGenerate when what was generated was applied (the latter for presetz only for now)
 
 	MidiBuffer modelEventBuffer;		// for msgs caused by the editor
 	
