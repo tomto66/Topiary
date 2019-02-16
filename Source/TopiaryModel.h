@@ -36,7 +36,7 @@ public:
 	virtual void restoreStateFromMemoryBlock(const void* data, int sizeInBytes);
 	virtual void addParametersToModel();
 	virtual void restoreParametersToModel();
-
+	virtual void cleanPattern(int p); // if there were edits done, recalculate stuff
 	int getNumPatterns();
 
 	////// Logger 
@@ -53,7 +53,7 @@ public:
 	////// Transport
 
 	void setBPM(int bpm);
-	void setNumeratorDenominator(int n, int d);
+	virtual void setNumeratorDenominator(int n, int d);
 	void getTransportState(int& b, int& n, int& d, int& bs, bool& o, bool &waitFFN);
 	virtual void setOverrideHostTransport(bool o);
 	void removeRecordButton();
@@ -119,13 +119,19 @@ public:
 #define MsgVariationDefinition "d" // 
 #define MsgRealTimeParameter "r" // signal that something in realtime needs updating in editor
 
-	////////// Automation
+	////////// Utility
 
 	void setVariationControl(bool ccSwitching, int channel, int switches[8]);
 	void getVariationControl(bool& ccSwitching, int& channel, int switches[8]);
 	void processAutomation(MidiMessage& msg);
 	virtual void processCC(MidiMessage& msg, MidiBuffer* midiBuffer) ;
 	virtual void processCC(MidiMessage& msg);
+
+	virtual void swapVariation(int from, int to);
+	virtual void copyVariation(int from, int to);
+
+	virtual void swapPreset(int from, int to); // the definitions part
+	virtual void copyPreset(int from, int to);
 
 protected:
 
@@ -200,6 +206,8 @@ protected:
 
 	String filePath;
 
+	///////////////////////////////////////////////////////////////////////////////
+
 	class DataSorter
 	{
 	public:
@@ -223,6 +231,7 @@ protected:
 	private:
 		String attributeToSort;
 		int direction;
+
 	}; // class DataSorter
 
 	///////////////////////////////////////////////////////////////////////
@@ -255,7 +264,7 @@ protected:
 			id++;
 			child = child->getNextElement();
 		}
-	} // renumberByTiumestamp
+	} // renumberByTimestamp
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -244,9 +244,9 @@ int validNoteNumber(String inNote)
 		break;
 	case (int)'A': number = 9;
 		break;
-	case (int)'B': number = 11;
+	case (int)'B': number = 11; 
 		break;
-	default: jassert(0);
+		default: jassert(0);
 
 	}
 
