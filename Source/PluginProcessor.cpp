@@ -255,21 +255,24 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 	{
 		if (msg.isNoteOn())
 		{
-			// if we are ready to play and waiting for first note in, start playing
-			if (waitFFN && (runState == Topiary::Armed))
-			{
-				tellModelToRun();
-				runState = Topiary::Running;
-			}
+			if (!model.midiLearn(msg)) {
+				// if we are ready to play and waiting for first note in, start playing
+				if (waitFFN && (runState == Topiary::Armed))
+				{
+					tellModelToRun();
+					runState = Topiary::Running;
+				}
 
-			model.processAutomation(msg); // because we may have switching by notes!
+				model.processAutomation(msg); // because we may have switching by notes
+			}
 		}
 		else
 		{
 			if (msg.isController())
 			{
-				model.processAutomation(msg);  // automation by cc messages 
-				model.processCC(msg, &processedMidi);
+				model.processAutomation(msg);  // automation by cc messages
+				if (!model.midiLearn(msg))
+					model.processCC(msg, &processedMidi);
 			}
 			else
 			{

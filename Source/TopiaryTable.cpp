@@ -27,6 +27,7 @@ TopiaryTable::TopiaryTable()
 	tableComponent.setColour(ListBox::outlineColourId, Colours::grey);
 	tableComponent.setOutlineThickness(1);
 	model = nullptr;
+	addAndMakeVisible(tableComponent);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -54,7 +55,7 @@ void TopiaryTable::setDataLists(XmlElement *h, XmlElement *d)
 		else
 			numRows = 0; // this might be the case when initializing
 
-		addAndMakeVisible(tableComponent);
+		//addAndMakeVisible(tableComponent);
 
 		if ((columnList != nullptr) && !headerSet) // if the column has already been set, we are probably loading a new preset; ignore 
 		{

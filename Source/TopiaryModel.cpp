@@ -90,9 +90,6 @@ void TopiaryModel::loadPreset(String msg, String extension)
 
 /////////////////////////////////////////////////////////////////////////
 
-#define xstr(s) str(s)
-#define str(s) #s
-
 TopiaryModel::TopiaryModel()
 {
 	filePath = "";
@@ -949,7 +946,7 @@ void TopiaryModel::processCC(MidiMessage& msg)
 
 void TopiaryModel::processAutomation(MidiMessage& msg)
 {
-		
+	
 	// assert that called only calls this consistently: msg is CC if ccVariationSwithing; msg is NoteOn it not
 	if (ccVariationSwitching && !msg.isController())
 		return;
@@ -1060,3 +1057,40 @@ void TopiaryModel::copyPreset(int from, int to)
 	UNUSED(to);
 
 } // copyPreset
+
+///////////////////////////////////////////////////////////////////////
+
+void TopiaryModel::swapPattern(int from, int to)
+{
+	// virtual
+	UNUSED(from);
+	UNUSED(to);
+
+} // swapPattern
+
+///////////////////////////////////////////////////////////////////////
+
+void TopiaryModel::copyPattern(int from, int to)
+{
+	// virtual
+	UNUSED(from);
+	UNUSED(to);
+
+} // copyPattern
+
+///////////////////////////////////////////////////////////////////////
+
+void TopiaryModel::learnMidi(int ID)
+{
+	learningMidi = true;  // signals processor of incoming midi that we want to learn
+	midiLearnID = ID;
+	Log("Learning MIDI.", Topiary::LogType::Warning);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryModel::stopLearningMidi()
+{
+	const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+	learningMidi = false;
+} // stopLearningMidi

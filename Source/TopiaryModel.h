@@ -116,6 +116,7 @@ public:
 #define MsgPattern "p"
 #define MsgTiming "T"
 #define MsgMaster "m"
+#define MsgLoad "l" //signal that new preset was loaded; e.g. to have the patternstab re-set the model
 #define MsgVariationDefinition "d" // 
 #define MsgRealTimeParameter "r" // signal that something in realtime needs updating in editor
 
@@ -124,6 +125,10 @@ public:
 	void setVariationControl(bool ccSwitching, int channel, int switches[8]);
 	void getVariationControl(bool& ccSwitching, int& channel, int switches[8]);
 	void processAutomation(MidiMessage& msg);
+
+	void learnMidi(int ID); // get a midi learn instruction from a MidiLearnEditor
+	void stopLearningMidi(); // called by timeout
+
 	virtual void processCC(MidiMessage& msg, MidiBuffer* midiBuffer) ;
 	virtual void processCC(MidiMessage& msg);
 
@@ -132,6 +137,10 @@ public:
 
 	virtual void swapPreset(int from, int to); // the definitions part
 	virtual void copyPreset(int from, int to);
+
+	virtual void swapPattern(int from, int to);
+	virtual void copyPattern(int from, int to);
+	
 
 protected:
 
@@ -203,6 +212,8 @@ protected:
 	int variationSwitch[8];				// either notes for each variation, of CC numbers
 	bool ccVariationSwitching = true;	// if false then we're using notes
 	int variationSwitchChannel = 0;		// midi channel for variation switching; 0 == omni
+	bool learningMidi = false;
+	int midiLearnID = 0;
 
 	String filePath;
 
