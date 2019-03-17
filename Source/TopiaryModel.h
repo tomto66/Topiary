@@ -117,6 +117,7 @@ public:
 #define MsgPattern "p"
 #define MsgTiming "T"
 #define MsgNotePool "n"
+#define MsgMaster "m"
 #define MsgPatternList "L"
 #define MsgLoad "l" //signal that new preset was loaded; e.g. to have the patternstab re-set the model
 #define MsgVariationDefinition "d" // 
@@ -414,7 +415,7 @@ protected:
 
 	///////////////////////////////////////////////////////////////////////
 
-	bool walkToTick(XmlElement* parent, XmlElement** child, int toTick, int& childIndex, XmlElement** prevChild)
+	bool walkToTick(XmlElement* parent, XmlElement** child, int toTick, int& childIndex)
 	{ 
 		// find the first child on or after this tick, starting from current child; 
 		// caller has to make sure that child is child of parent, or pass nullptr to initialize
@@ -425,7 +426,7 @@ protected:
 
 		int childTick;
 		childIndex = 0;
-		*prevChild = nullptr;
+		//prevChild = nullptr;
 
 		if (*child == nullptr)
 		{
@@ -439,7 +440,7 @@ protected:
 
 		while (childTick < toTick)
 		{   // as long as our child is behind time we're looking for
-			*prevChild = *child;
+			//*prevChild = *child;
 			*child = (*child)->getNextElement();
 			childIndex++;
 			if (*child == nullptr) break; // there are no events afther the given time
@@ -448,7 +449,7 @@ protected:
 
 		if (*child == nullptr)
 		{
-			*prevChild = *child;
+			//*prevChild = *child;
 			*child = parent->getFirstChildElement();
 			return true;
 			

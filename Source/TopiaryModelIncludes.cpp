@@ -411,21 +411,23 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 	MidiMessage msg;
 	XmlElement* parent = nullptr;
 	XmlElement* noteChild = nullptr;
-	XmlElement* prevNoteChild = nullptr; // needed because when recording we need to insert BEFORE the noteChild
+	int noteChildIndex;
+	//XmlElement* prevNoteChild = nullptr; // needed because when recording we need to insert BEFORE the noteChild
+#ifdef PRESETZ
+	UNUSED(recBuffer)
+#endif
 #ifndef PRESETZ
+
 
 	////////////////////////////////////////
 	// Record logic here
 	////////////////////////////////////////
-
-	// copy any events in the recBuffer to an array (for access reasons)
 
 #define RECBUFFERSIZE 100
 	MidiMessage recordBuffer[RECBUFFERSIZE];
 	int recordTiming[RECBUFFERSIZE];
 	int recordBufferSize = 0; 
 	int samplePos = 0;
-	int noteChildIndex;
 
 	if (recordingMidi)
 	{
@@ -466,7 +468,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 				for (int r = 0; r < recordBufferSize; r++)
 				{
 					noteChild = nullptr; // otherwise noteChildIndex won't be correct
-					walkToTick(parent, &noteChild, patternCursor, noteChildIndex, &prevNoteChild);
+					walkToTick(parent, &noteChild, patternCursor, noteChildIndex);
 					XmlElement* newChild;
 					newChild = new XmlElement("RECDATA");  // the RECDATA elements will get inserted in the pattern when recording done
 					newChild->setAttribute("ID", 0); // dummy
@@ -568,10 +570,10 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 	//Logger::outputDebugString("Next note on to generate afer current tick " + String(patternCursor));
 
 	bool walk;
-
+	
 	if (!ending || (ending && !ended))
 	{
-		walk = walkToTick(parent, &noteChild, patternCursor, noteChildIndex, &prevNoteChild);
+		walk = walkToTick(parent, &noteChild, patternCursor, noteChildIndex);
 	}
 	else
 		walk = false; // meaning an ending variation and ended

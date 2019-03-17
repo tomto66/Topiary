@@ -80,7 +80,8 @@ public:
 
 private:
 	TOPIARYMODEL model;	// do this first!!!
-	
+	MidiBuffer processedMidi;
+
 	int tellModelToRun()
 	{ // do all that is needed to tell the model to really start running 
 		model.setRunState(Topiary::Running);

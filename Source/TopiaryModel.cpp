@@ -623,7 +623,7 @@ void TopiaryModel::setBlockSize(int blocksz)
 	if (blocksz != blockSize)
 	{
 		blockSize = blocksz;
-		Log(String("Blocksize ") + String(blockSize), Topiary::LogType::Debug);
+		Log(String("Blocksize ") + String(blockSize), Topiary::LogType::Info);
 	}
 } // setBlockSize
 
