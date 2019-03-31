@@ -17,12 +17,7 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "Topiary.h"
-#include "TopiaryModel.h"
 #include "TopiaryThread.h"
-
 
 /////////////////////////////////////////////////////////////////////////////
 

@@ -18,11 +18,12 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "Topiary.h"
-#include "TopiaryModel.h"
+//#ifndef FILE_TOPIARYTHREAD_SEEN
+//#define FILE_TOPIARYTHREAD_SEEN
 
-class TopiaryModel;
+class TopiaryThread; // needed by TopiaryModel.h
+
+#include "TopiaryModel.h"
 
 class TopiaryThread : public Thread
 {
@@ -36,3 +37,5 @@ private:
 	TopiaryModel* model;
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryThread)
 };
+
+//#endif

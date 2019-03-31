@@ -17,9 +17,10 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#include "../JuceLibraryCode/JuceHeader.h"
-#include "Topiary.h"
 #include "TopiaryModel.h"
+#include "TopiaryThread.h"
+
+
 
 void TopiaryModel::saveStateToMemoryBlock(MemoryBlock& destData)
 {
@@ -100,8 +101,9 @@ TopiaryModel::TopiaryModel()
 	BPM = 120;
 	numerator = 4; denominator = 4;
 	numPatterns = 0;
-	topiaryThread.setModel(this);
-	topiaryThread.startThread(8); // thread should start with a wait - and inherited model should call notify when init is done
+	topiaryThread.reset(new TopiaryThread);
+	topiaryThread->setModel(this);
+	topiaryThread->startThread(8); // thread should start with a wait - and inherited model should call notify when init is done
 
 } // TopiaryModel
 
@@ -109,7 +111,7 @@ TopiaryModel::TopiaryModel()
 
 TopiaryModel::~TopiaryModel()
 {
-	topiaryThread.stopThread(-1);
+	topiaryThread->stopThread(-1);
 	runState = Topiary::Stopped;
 
 } //~TopiaryModel

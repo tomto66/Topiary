@@ -30,7 +30,8 @@ CAREFUL: needs a symbol TOPIARYMODEL to actually build!
 /////////////////////////////////////////////////////////////////////////////
 
 #ifdef TOPIARYMODEL
-
+#ifndef FILE_TOPIARYMIDILEARNEDITOR_SEEN
+#define FILE_TOPIARYMIDILEARNEDITOR_SEEN
 class TOPIARYMODEL;
 
 class TopiaryMidiLearnEditor : public TextEditor
@@ -48,4 +49,5 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryMidiLearnEditor)
 };
 
+#endif
 #endif

@@ -17,7 +17,6 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
 #include "TopiaryTable.h"
 
 #if defined(BEATZ) || defined(CHORDZ)

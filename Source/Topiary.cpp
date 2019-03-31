@@ -17,8 +17,6 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "Topiary.h"
 
 const Colour TopiaryColour::background = Colour(47, 50, 52);

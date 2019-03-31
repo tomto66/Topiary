@@ -17,12 +17,12 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-#include "../JuceLibraryCode/JuceHeader.h"
 #include "Topiary.h"
 
 #if defined (BEATZ) || defined(CHORDZ)
 
+#ifndef FILE_TOPIARYTABLE_SEEN
+#define FILE_TOPIARYTABLE_SEEN
 class TOPIARYMODEL;
 
 
@@ -197,4 +197,5 @@ private:
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryTable)
 };
 
+#endif
 #endif  // of the top #if defined statement

@@ -26,8 +26,6 @@ CAREFUL: needs symbols:
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-
 #ifdef TOPIARYLOGCOMPONENT
 
 class TOPIARYLOGCOMPONENT : public Component, ActionListener

@@ -25,17 +25,14 @@ Some rules:
 */
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
 
-#if defined (BEATZ) || defined(CHORDZ)
-#if defined (TOPIARYLISTMODEL)
-#if defined (TOPIARYTABLE)
+#include "TopiaryListModel.h"
 
-class TOPIARYTABLE : public Component, 
+class TopiaryTableList : public Component, 
 					 public TableListBoxModel
 {
 public:
-	TOPIARYTABLE();
+	TopiaryTableList();
 
 	int getNumRows() override;
 	void paintRowBackground(Graphics& g, int, int, int, bool) override;
@@ -53,22 +50,22 @@ public:
 	void updateContent();
 	bool isHeaderSet();
 	void setHeader();
-	void setModel(TOPIARYLISTMODEL* model);
+	void setModel(TopiaryListModel* model);
 
 private:
 	TableListBox tableComponent{ {}, this };
 	Font font{ 14.0f }; 
 	std::unique_ptr<XmlElement> tableData;
 	XmlElement* dataList;
-	//XmlElement* columnList;
+	
 	int numRows = 0;
 	bool headerSet = false;
-	TOPIARYLISTMODEL* model;
+	TopiaryListModel* model;
 
 	class EditableTextCustomComponent : public Label
 	{
 	public:
-		EditableTextCustomComponent(TOPIARYTABLE& td)
+		EditableTextCustomComponent(TopiaryTableList& td)
 			: owner(td)
 		{
 			setEditable(false, true, false);
@@ -102,7 +99,7 @@ private:
 
 		
 	private:
-		TOPIARYTABLE& owner;
+		TopiaryTableList& owner;
 		int row, columnId;
 		Colour textColour;
 	}; // class EditableTextCustomComponent
@@ -112,7 +109,7 @@ private:
 	class SelectionColumnCustomComponent : public Component
 	{
 	public:
-		SelectionColumnCustomComponent(TOPIARYTABLE& td)
+		SelectionColumnCustomComponent(TopiaryTableList& td)
 			: owner(td)
 		{
 			addAndMakeVisible(toggleButton);
@@ -133,7 +130,7 @@ private:
 		}
 
 	private:
-		TOPIARYTABLE& owner;
+		TopiaryTableList& owner;
 		ToggleButton toggleButton;
 		int row, columnId;
 
@@ -171,23 +168,11 @@ private:
 
 	String getAttributeNameForColumnId(const int columnId) const
 	{
-		/*
-		forEachXmlChildElement(*columnList, columnXml)
-		{
-			if (columnXml->getIntAttribute("columnId") == columnId)
-				return columnXml->getStringAttribute("name");
-		}
-
-		return {};*/
 		return model->headerList[columnId - 1].name;
 	}
 
 	/////////////////////////////////////////////////////////////////////
 
 
-	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TOPIARYTABLE)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryTableList)
 };
-
-#endif  // of the top #if defined statement
-#endif
-#endif

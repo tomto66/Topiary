@@ -17,14 +17,14 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
-
 #pragma once
 #include "Topiary.h"
-#include "TopiaryModel.h"
+
+class TopiaryModel; //needed by TopiaryThread.h
+
 #include "TopiaryThread.h"
 
-
-class TopiaryModel
+class TopiaryModel 
 {
 public:
 	TopiaryModel();
@@ -153,8 +153,8 @@ protected:
 	SpinLock lockModel;
 	ActionBroadcaster broadcaster;
 	std::unique_ptr<XmlElement> model;
-	TopiaryThread topiaryThread;
-
+	//TopiaryThread topiaryThread;
+	std::unique_ptr<TopiaryThread> topiaryThread; // because it is forward declared!
 	String name;
 
 	/////////// Logger 

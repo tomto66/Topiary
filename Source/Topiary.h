@@ -128,8 +128,16 @@ class Topiary
 		DoneGenerating = 2607 // meaning it needs to go back to NothingToDo
 	};
 
-	static const int TICKS_PER_QUARTER = 240;
+	enum HeaderType : int
+	{
+		Int = 3604,
+		Bool = 3605,
+		String = 3607,
+		NoteLabel = 3608
+	};
 
+	static const int TICKS_PER_QUARTER = 240;
+	static const int ToDeleteID = 999999999;
 private:
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Topiary)
@@ -178,5 +186,3 @@ private:
 }; // TopiaryColour
 
 /////////////////////////////////////////////////////////////////////////////
-
-

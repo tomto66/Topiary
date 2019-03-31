@@ -446,15 +446,8 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		{
 			int rememberPatternCursor = patternCursor;
 
-			// pick a channel
-			XmlElement *poolNote = poolListData->getFirstChildElement();
-			int channel = 0;
-
-			while ((poolNote != nullptr) && (channel == 0))
-			{
-				channel = poolNote->getIntAttribute("Channel");
-				poolNote = poolNote->getNextElement();
-			}
+			// pick a channel	
+			int channel = 10;
 
 			jassert(channel != 0); // should not happen; editor should prevent that!
 
@@ -605,8 +598,11 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 				{
 					if (threadRunnerState == Topiary::ThreadRunnerState::NothingToDo)
 					{
-						threadRunnerState = Topiary::ThreadRunnerState::Generating;
-						topiaryThread.notify();  // trigger regeneration
+						//threadRunnerState = Topiary::ThreadRunnerState::Generating;
+						//topiaryThread.notify();  // trigger regeneration
+						generateVariation(variationRunning);
+						getVariationDetailForGenerateMidi(&parent, &noteChild, parentLength, ending, ended);
+						walk = walkToTick(parent, &noteChild, patternCursor, noteChildIndex);
 					}
 				}
 #endif
@@ -742,6 +738,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 	blockCursor = blockCursor + blockSize;
 
 	calcMeasureBeat();
+
 
 } // generateMidi
 
