@@ -17,15 +17,13 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 // Needs TOPIARYLISTMODEL defined; that will actually be a datalist model!!!
-// Needs TOPIARYTABLE defined; that will be the name of this table model
+// Needs TopiaryTablList defined; that will be the name of this table model
 /////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-//#include "TopiaryTable.h"
 
-#if defined(BEATZ) || defined(CHORDZ)
+#include "TopiaryTableList.h"
 
-TOPIARYTABLE::TOPIARYTABLE()
+TopiaryTableList::TopiaryTableList()
 {
 	tableComponent.setColour(ListBox::outlineColourId, Colours::grey);
 	tableComponent.setOutlineThickness(1);
@@ -38,61 +36,42 @@ TOPIARYTABLE::TOPIARYTABLE()
 	//tableData->addChildElement(columnList);
 	addAndMakeVisible(tableComponent); // see if we do that here or in setModel
 	
-} // TOPIARYTABLE
+} // TopiaryTableList
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::setHeader()
+void TopiaryTableList::setHeader()
 {
 	headerSet = true;
-} // ~TOPIARYTABLE
+} // ~TopiaryTablList
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-bool TOPIARYTABLE::isHeaderSet()
+bool TopiaryTableList::isHeaderSet()
 {
 	return headerSet;
 } // isHeaderSet
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::setModel(TOPIARYLISTMODEL *m)
+void TopiaryTableList::setModel(TopiaryListModel *m)
 {
-/*
-		columnList = h;
-		dataList = d;
-		if (dataList == nullptr)
-			dataList = dummyDataList->getFirstChildElement(); // may happen at initialization - dummyDataList is just a temporary XmlElement
-
-		if (dataList != nullptr)
-			numRows = dataList->getNumChildElements();
-		else
-			jassert(false);
-*/
 		model = m;
 		if (!headerSet) // if the column has already been set, we are probably loading a new preset; ignore 
 		{
 			for (int h =0; h< model->headerListItems; h++)
 			{  
-				// type is for internal use, not to show in the header
-				tableComponent.getHeader().addColumn(m->headerList[h].name,
-														m->headerList[h].columnID,
-														m->headerList[h].width,
-														10,
-														400,
-														//TableHeaderComponent::defaultFlags);
-														TableHeaderComponent::visible + TableHeaderComponent::sortable);
-				/*
-				XmlElement *child = new XmlElement("Column");
-				child->setAttribute("columnID", String(m->headerList->columnID));
-				child->setAttribute("name", m->headerList->name);
-				child->setAttribute("width", String(m->headerList->width));
-				child->setAttribute("type", String(m->headerList->type));
-				child->setAttribute("editable", (m->headerList->editable) ? "true" : "false");
-				child->setAttribute("min", String(m->headerList->min));
-				child->setAttribute("max", String(m->headerList->max));
-				columnList->addChildElement(child);
-					*/	
+				if (m->headerList[h].visible)
+				{
+					// type is for internal use, not to show in the header
+					tableComponent.getHeader().addColumn(m->headerList[h].name,
+						m->headerList[h].columnID,
+						m->headerList[h].width,
+						10,
+						400,
+						//TableHeaderComponent::defaultFlags);
+						TableHeaderComponent::visible + TableHeaderComponent::sortable);
+				}
 			}
 			
 			headerSet = true;
@@ -111,7 +90,7 @@ void TOPIARYTABLE::setModel(TOPIARYLISTMODEL *m)
 //////////////////////////////////////////////////////////////////////////////////////
 
 
-int TOPIARYTABLE::getNumRows() 
+int TopiaryTableList::getNumRows() 
 {
 		return numRows;
 		
@@ -119,7 +98,7 @@ int TOPIARYTABLE::getNumRows()
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::paintRowBackground(Graphics& g, int rowNumber, int /*width*/, int /*height*/, bool rowIsSelected) 
+void TopiaryTableList::paintRowBackground(Graphics& g, int rowNumber, int /*width*/, int /*height*/, bool rowIsSelected) 
 {
 		auto alternateColour = getLookAndFeel().findColour(ListBox::backgroundColourId)
 			.interpolatedWith(getLookAndFeel().findColour(ListBox::textColourId), 0.03f);
@@ -132,7 +111,7 @@ void TOPIARYTABLE::paintRowBackground(Graphics& g, int rowNumber, int /*width*/,
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::paintCell(Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) 
+void TopiaryTableList::paintCell(Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) 
 {
 	UNUSED(rowIsSelected)
 	// below controls the cell text color; in the demo the ID gets a different color (dark blue - we've taken that out so rowIsSelected is no longer used really)
@@ -154,7 +133,7 @@ void TOPIARYTABLE::paintCell(Graphics& g, int rowNumber, int columnId, int width
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::sortOrderChanged(int newSortColumnId, bool isForwards) 
+void TopiaryTableList::sortOrderChanged(int newSortColumnId, bool isForwards) 
 {
 
 		if (newSortColumnId != 0)
@@ -169,7 +148,7 @@ void TOPIARYTABLE::sortOrderChanged(int newSortColumnId, bool isForwards)
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-Component* TOPIARYTABLE::refreshComponentForCell(int rowNumber, int columnId, bool /*isRowSelected*/,
+Component* TopiaryTableList::refreshComponentForCell(int rowNumber, int columnId, bool /*isRowSelected*/,
 		Component* existingComponentToUpdate) 
 {
 		if (columnId != 1)
@@ -202,7 +181,7 @@ Component* TOPIARYTABLE::refreshComponentForCell(int rowNumber, int columnId, bo
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-int TOPIARYTABLE::getColumnAutoSizeWidth(int columnId) 
+int TopiaryTableList::getColumnAutoSizeWidth(int columnId) 
 {
 		if (columnId == 9)
 			return 50;
@@ -225,7 +204,7 @@ int TOPIARYTABLE::getColumnAutoSizeWidth(int columnId)
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-int TOPIARYTABLE::getSelectedRow()
+int TopiaryTableList::getSelectedRow()
 {
 	return tableComponent.getSelectedRow(0);
 	
@@ -233,7 +212,7 @@ int TOPIARYTABLE::getSelectedRow()
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::selectRow(int i)
+void TopiaryTableList::selectRow(int i)
 {
 	tableComponent.selectRow(i);
 	
@@ -241,7 +220,7 @@ void TOPIARYTABLE::selectRow(int i)
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-int TOPIARYTABLE::getSelection(const int rowNumber) const
+int TopiaryTableList::getSelection(const int rowNumber) const
 {  
 		return dataList->getChildElement(rowNumber)->getIntAttribute("Select");
 		
@@ -249,7 +228,7 @@ int TOPIARYTABLE::getSelection(const int rowNumber) const
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::setSelection(const int rowNumber, const int newSelection)
+void TopiaryTableList::setSelection(const int rowNumber, const int newSelection)
 {
 		dataList->getChildElement(rowNumber)->setAttribute("Select", newSelection);
 		
@@ -257,7 +236,7 @@ void TOPIARYTABLE::setSelection(const int rowNumber, const int newSelection)
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-String TOPIARYTABLE::getText(const int columnNumber, const int rowNumber) const
+String TopiaryTableList::getText(const int columnNumber, const int rowNumber) const
 {
 	return dataList->getChildElement(rowNumber)->getStringAttribute(getAttributeNameForColumnId(columnNumber));
 	
@@ -265,7 +244,7 @@ String TOPIARYTABLE::getText(const int columnNumber, const int rowNumber) const
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-String TOPIARYTABLE::setText(const int columnNumber, const int rowNumber, const String& newText)
+String TopiaryTableList::setText(const int columnNumber, const int rowNumber, const String& newText)
 {
 	String validatedText;
 	// check input, type etc here!!!
@@ -294,15 +273,17 @@ String TOPIARYTABLE::setText(const int columnNumber, const int rowNumber, const 
 		}
 		else i = min;
 		validatedText = String(i);
+		model->setIntByIndex(rowNumber, columnIndex, i);
 	}
 	
 	else if (type == Topiary::HeaderType::NoteLabel)
 	{
 		validatedText = validateNote(newText);
+		dataList->getChildElement(rowNumber)->setAttribute("Label", validatedText);
 		model->setStringByIndex(rowNumber, columnIndex, validatedText);
 		int noteNumber = validNoteNumber(validatedText);
-		columnIndex = model->getColumnIndexByName("NoteNumber");
-		dataList->getChildElement(rowNumber)->setAttribute("NoteNumber", noteNumber);
+		columnIndex = model->getColumnIndexByName("Note");
+		dataList->getChildElement(rowNumber)->setAttribute("Note", noteNumber);
 		model->setIntByIndex(rowNumber, columnIndex, noteNumber);
 	}
 	else
@@ -314,50 +295,39 @@ String TOPIARYTABLE::setText(const int columnNumber, const int rowNumber, const 
 	// below writes in the table; writing in the model is done above!
 	dataList->getChildElement(rowNumber)->setAttribute(columnName, validatedText);
 
-	//if (broadcaster != nullptr)
-	//{
-	//	broadcaster->sendActionMessage(broadcastMessage);
-	//}
-
-#ifdef TOPIARYMODEL
 	if (model != nullptr) // i.e. we are editing a pattern or pool notes (otherwise model == nullptr)
 	{
-		//model->validateTableEdit(pattern, dataList->getChildElement(rowNumber), columnName);
+		model->validateTableEdit(pattern, dataList->getChildElement(rowNumber), columnName);
 		int remember = tableComponent.getSelectedRow(0);
-		//setDataLists(columnList, dataList);  // force refresh
+		model->fillDataList(dataList);	// update contents
+		tableComponent.updateContent();
 		selectRow(remember);
 	}
-#endif
+
 	return validatedText;
 } // setText
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::updateContent()
+void TopiaryTableList::updateContent()
 {
-	numRows = model->numItems;
-	model->fillDataList(dataList);
-	
+	numRows = model->getNumItems();
+	model->fillDataList(dataList);	
 	tableComponent.updateContent();
+
 } // updateContent
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-void TOPIARYTABLE::resized() 
+void TopiaryTableList::resized() 
 {
 	tableComponent.setBoundsInset(BorderSize<int>(8));
 } // resized
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-//void TOPIARYTABLE::setBroadcaster(ActionBroadcaster *b, String msg) 
-//{
-
-	// broadcaster = b;
-	// broadcastMessage = msg;
-//}
-
-//////////////////////////////////////////////////////////////////////////////////////
-
-
-#endif // main #if defined
+void TopiaryTableList::setPattern(int p)
+{
+	// set pattern index
+	pattern = p;
+}

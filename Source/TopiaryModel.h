@@ -20,10 +20,6 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 #include "Topiary.h"
 
-class TopiaryModel; //needed by TopiaryThread.h
-
-#include "TopiaryThread.h"
-
 class TopiaryModel 
 {
 public:
@@ -37,7 +33,6 @@ public:
 	virtual void addParametersToModel();
 	virtual void restoreParametersToModel();
 	virtual void cleanPattern(int p); // if there were edits done, recalculate stuff
-	int getNumPatterns();
 
 	////// Logger 
 
@@ -81,7 +76,7 @@ public:
 	virtual void generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer);
 	virtual bool processVariationSwitch();
 	virtual bool switchingVariations();
-	virtual void getVariationDetailForGenerateMidi(XmlElement** parent, XmlElement** noteChild, int& parentLength, bool& ending, bool& ended);
+	virtual void getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended);
 	virtual void setEnded(); // flag and ending variation has actually ended
 	virtual void threadRunner(); // does generation of patterns on a separate thread
 
@@ -119,7 +114,7 @@ public:
 #define MsgNotePool "n"
 #define MsgMaster "m"
 #define MsgPatternList "L"
-#define MsgLoad "l" //signal that new preset was loaded; e.g. to have the patternstab re-set the model
+#define MsgLoad "i" //signal that new preset was loaded; e.g. to have the patternstab re-set the model
 #define MsgVariationDefinition "d" // 
 #define MsgRealTimeParameter "r" // signal that something in realtime needs updating in editor
 
@@ -151,11 +146,14 @@ public:
 protected:
 
 	SpinLock lockModel;
-	ActionBroadcaster broadcaster;
+	
 	std::unique_ptr<XmlElement> model;
-	//TopiaryThread topiaryThread;
-	std::unique_ptr<TopiaryThread> topiaryThread; // because it is forward declared!
+	
 	String name;
+
+	ActionBroadcaster broadcaster; // needed by validateTableEdit in e.g. TopiaryPattern
+	int denominator = 0; // b in a/b
+	int numerator = 0;  // a in a/b
 
 	/////////// Logger 
 
@@ -173,8 +171,6 @@ protected:
 	/////////// Transport
 
 	bool overrideHostTransport = true;
-	int denominator = 0; // b in a/b
-	int numerator = 0;  // a in a/b
 	int BPM = 120;
 	int runState;
 	
@@ -191,7 +187,7 @@ protected:
 	int64 nextRTGenerationCursor;		// real time cursor of next event to generate
 	int blockSize;						// size of block to generate 
 	int patternCursor;					// patternCursor  to disappear in the future
-	int numPatterns = -1;				// set to 1 in Presetz (as long as it's not -1 in presetz :)
+	//int numPatterns = -1;				// set to 1 in Presetz (as long as it's not -1 in presetz :)
 	int variationStartQ = Topiary::Quantization::Immediate;			// when to switch variations
 	int runStopQ = Topiary::Quantization::Immediate;				// when to stop running
 	bool WFFN = false;												// start at first note in if true; otherwize immediate
@@ -399,7 +395,7 @@ protected:
 	} // calcMeasureBeat
 
 	///////////////////////////////////////////////////////////////////////
-
+/*
 	void nextTick(XmlElement* parent, XmlElement** child)
 	{	// assert that parent has at least 1 child of each!!! (do a walk to a tick first!)
 		// this one loops around the pattern
@@ -412,21 +408,24 @@ protected:
 		}
 
 	}  // nextTick
+	*/
+
+	
 
 	///////////////////////////////////////////////////////////////////////
-
+	/*
 	bool walkToTick(XmlElement* parent, XmlElement** child, int toTick, int& childIndex)
 	{ 
-		// find the first child on or after this tick, starting from current child; 
-		// caller has to make sure that child is child of parent, or pass nullptr to initialize
-		// return false if pattern is empty or nothing to do within the blockSize; if empty then child == nullptr; 
+		// Find the first child on or after this tick, starting from current child; 
+		// Caller has to make sure that child is child of parent, or pass nullptr to initialize
+		// Return false if pattern is empty or nothing to do within the blockSize; if empty then child == nullptr; 
 		// This loops around the pattern! 
 		// returns childIndex when called from recording (before record we set nextPatternChild to nullptr to make this correct)
 		// returns correct prevChild if there is one
 
 		int childTick;
 		childIndex = 0;
-		//prevChild = nullptr;
+
 
 		if (*child == nullptr)
 		{
@@ -455,20 +454,11 @@ protected:
 			
 		}
 		return true;
+
 	} // walkToTick
+	*/
 
-	///////////////////////////////////////////////////////////////////////
-
-	///////////////////////////////////////////////////////////////////////
-
-	void swapXmlElementPointers(XmlElement** a, XmlElement** b)
-	{
-		XmlElement* remember;
-		remember = *a;
-		*a = *b;
-		*b = remember;
-	}
-
+	
 	///////////////////////////////////////////////////////////////////////
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryModel)

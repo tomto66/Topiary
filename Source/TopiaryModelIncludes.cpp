@@ -86,7 +86,7 @@ void TOPIARYMODEL::setNumeratorDenominator(int nu, int de)
 	{
 #ifndef PRESETZ
 		// check if there is data - if so do not allow meter changes!
-		if (numPatterns >0)
+		if (getNumPatterns() >0)
 		{
 			Log("Set meter first!", Topiary::LogType::Warning);
 			Log("Meter change not allowed when patterndata available.", Topiary::LogType::Warning);
@@ -167,7 +167,7 @@ void TOPIARYMODEL::getVariationEnables(bool enables[8])
 
 int TOPIARYMODEL::getVariationLenInTicks(int v)
 {
-	return variation[v].lenInTicks;
+	return variation[v].pattern.patLenInTicks;
 
 } // getVariationLenInTicks
 
@@ -181,13 +181,16 @@ bool TOPIARYMODEL::getVariationEnabled(int v)
 
 ///////////////////////////////////////////////////////////////////////
 
-void TOPIARYMODEL::getVariationDetailForGenerateMidi(XmlElement** parent, XmlElement** noteChild, int& parentLength, bool& ending, bool& ended)
+void TOPIARYMODEL::getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended)
 {
-	parentLength = variation[variationRunning].lenInTicks;
+	jassert(false); // needs rework
+	/*
+	parentLength = variation[variationRunning].pattern.patLenInTicks;
 	ending = variation[variationRunning].ending;
 	ended = variation[variationRunning].ended;
-	*parent = variation[variationRunning].pattern;
-	*noteChild = variation[variationRunning].currentPatternChild;
+	parent = variation[variationRunning].pattern;
+	noteChild = variation[variationRunning].currentPatternChild;
+	*/
 
 } // getVariationDetailForGenerateMidi
 
@@ -320,7 +323,6 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 	}
 	else return false;
 
-
 } // processVariationSwitch
 
 ///////////////////////////////////////////////////////////////////////
@@ -349,7 +351,7 @@ bool TOPIARYMODEL::switchingVariations()
 
 } // switchingVariations
 
-
+/*
 ///////////////////////////////////////////////////////////////////////
 
 void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
@@ -357,7 +359,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 
 	const GenericScopedLock<SpinLock> myScopedLock(lockModel);
 
-	/*************************************************************************************************************************************************
+	/ *************************************************************************************************************************************************
 	Uses a lot of model variables!  Summary of what is needed for what here
 
 	variation[variationRunning].pattern;
@@ -370,7 +372,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 	int blockSize;					// size of block to generate
 	int patternCursor;				// ticks where we are within the variation/pattern - if we do nothing it should still advance with blocksize/samplesPerTick
 
-	**************************************************************************************************************************************************/
+	************************************************************************************************************************************************** /
 
 	int64 rtCursorFrom;				// sampletime to start generating from
 	int64 rtCursorTo;				// we generate in principle till here
@@ -409,10 +411,12 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 	bool ending; // indicates this variation will play only once
 	bool ended; // indicates this variation was ending==true and has now ended
 	MidiMessage msg;
-	XmlElement* parent = nullptr;
-	XmlElement* noteChild = nullptr;
+	int parent = 0; //
+	int noteChild = 0; //
 	int noteChildIndex;
-	//XmlElement* prevNoteChild = nullptr; // needed because when recording we need to insert BEFORE the noteChild
+	jassert(false); // needs rework
+	
+
 #ifdef PRESETZ
 	UNUSED(recBuffer)
 #endif
@@ -452,7 +456,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 			jassert(channel != 0); // should not happen; editor should prevent that!
 
 			// now insert the recorded events
-			getVariationDetailForGenerateMidi(&parent, &noteChild, parentLength, ending, ended);
+			getVariationDetailForGenerateMidi(parent, noteChild, parentLength, ending, ended);
 
 			// if pattern not empty
 			if (parent->getNumChildElements())
@@ -474,7 +478,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 						newChild->setAttribute("midiType", Topiary::MidiType::NoteOff);
 
 					int64 cursorInTicks = (int64)floor(blockCursor / samplesPerTick) + recordTiming[r];
-					cursorInTicks = cursorInTicks % variation[variationSelected].lenInTicks;
+					cursorInTicks = cursorInTicks % variation[variationSelected].pattern.patLenInTicks;
 
 					//int measure = (int)floor(cursorInTicks / (ticksPerBeat* denominator)) + 1;
 					//int beat = (int)floor(cursorInTicks / ticksPerBeat);
@@ -506,7 +510,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 						newChild->setAttribute("midiType", Topiary::MidiType::NoteOff);
 
 					int64 cursorInTicks = (int64)floor(blockCursor / samplesPerTick) + recordTiming[r];
-					cursorInTicks = cursorInTicks % variation[variationSelected].lenInTicks;
+					cursorInTicks = cursorInTicks % variation[variationSelected].pattern.patLenInTicks;
 
 					//int measure = (int)floor(cursorInTicks / (ticksPerBeat* denominator)) + 1;
 					//int beat = (int)floor(cursorInTicks / ticksPerBeat);
@@ -521,7 +525,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 			} // record in empty pattern
 
 			// reset patternchild to nullptr so the rest of the logic can restart (because we may have messed with patternchild
-			variation[variationRunning].currentPatternChild = nullptr;
+			variation[variationRunning].currentPatternChild = 0;
 			patternCursor = rememberPatternCursor;
 
 		} // recordBufferSize != 0
@@ -538,13 +542,6 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 
 	jassert(beat >= 0);
 	jassert(measure >= 0);
-
-	//if (nextRTGenerationCursor > rtCursorTo)
-	//{
-	//	blockCursor = blockCursor + blockSize;
-	//	//Logger::outputDebugString("Nothing to generate");
-	//	return;  // nothing to generate now
-	//}
 
 	getVariationDetailForGenerateMidi(&parent, &noteChild, parentLength, ending, ended);
 
@@ -734,14 +731,14 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		}
 
 	}
-
+	
 	blockCursor = blockCursor + blockSize;
 
 	calcMeasureBeat();
 
 
 } // generateMidi
-
+*/
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef PRESETZ
@@ -756,28 +753,19 @@ void TOPIARYMODEL::cleanPattern(int p)
 	// regenerate any variations that depend on this pattern
 
 	jassert(p < 8);
-
-	XmlElement *child = patternData[p].noteData->getFirstChildElement();
+	
+	jassert(false); // still to do
+	/*XmlElement *child = patternData[p].noteData->getFirstChildElement();
 
 	while (child != nullptr)
 	{
 
 		child = child->getNextElement();
 	}
+	*/
 } // cleanPattern
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-void TOPIARYMODEL::setLength(int p, l)
-{
-	// set LinInTicks, based on l in measures
-	// delete all events possbily after the ticklength
 
-	l = TOPIARY::TICKS_PER_QUARTER * denominator;
-
-
-
-} // setLength
-*/
 #endif

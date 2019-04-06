@@ -17,10 +17,8 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
+#pragma once
 #include "TopiaryModel.h"
-#include "TopiaryThread.h"
-
-
 
 void TopiaryModel::saveStateToMemoryBlock(MemoryBlock& destData)
 {
@@ -57,13 +55,11 @@ void TopiaryModel::savePreset(String msg, String extension)
 	{
 		filePath = f.getParentDirectory().getFullPathName();
 		f = myChooser.getResult();
-		addParametersToModel();  // this adds and XML element "Parameters" to the model
+		addParametersToModel();  // this adds all data as XML elements to model
 		String myXmlDoc = model->createDocument(String());
 		f.replaceWithText(myXmlDoc);
 		//Logger::writeToLog(myXmlDoc);
 
-		// now delete the no-longer-needed "Parameters" child
-		model->deleteAllChildElementsWithTagName("Parameters");
 	}
 } // savePreset
 
@@ -100,18 +96,13 @@ TopiaryModel::TopiaryModel()
 	runState = Topiary::Stopped;
 	BPM = 120;
 	numerator = 4; denominator = 4;
-	numPatterns = 0;
-	topiaryThread.reset(new TopiaryThread);
-	topiaryThread->setModel(this);
-	topiaryThread->startThread(8); // thread should start with a wait - and inherited model should call notify when init is done
-
+	
 } // TopiaryModel
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 TopiaryModel::~TopiaryModel()
 {
-	topiaryThread->stopThread(-1);
 	runState = Topiary::Stopped;
 
 } //~TopiaryModel
@@ -445,13 +436,7 @@ void TopiaryModel::setRunState(int n)
 		case Topiary::Ended:
 			break;
 		case Topiary::Armed:
-			if (numPatterns == 0)
-			{
-				Log("Cannot run because there is no pattern data loaded.", Topiary::LogType::Warning);
-				runState = remember;
-			}
-			else
-			{
+			
 				// make sure there are variations enbabled
 				// and that we selected an enabled variation
 				
@@ -482,7 +467,7 @@ void TopiaryModel::setRunState(int n)
 					Log("Cannot run because there is no variation enabled.", Topiary::LogType::Warning);
 					runState = Topiary::Stopped;
 				}
-			}
+			
 			break;
 		default:
 			break;
@@ -570,12 +555,6 @@ void TopiaryModel::processTransportControls(int buttonEnabled)  // buttonEnabled
 
 ///////////////////////////////////////////////////////////////////////
 
-int TopiaryModel::getNumPatterns()
-{
-	// from 1 to number of patterns
-	return numPatterns;
-
-} // getNumPatterns
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -631,7 +610,7 @@ void TopiaryModel::setBlockSize(int blocksz)
 
 ///////////////////////////////////////////////////////////////////////
 
-void TopiaryModel::getVariationDetailForGenerateMidi(XmlElement** parent, XmlElement** noteChild, int& parentLength, bool& ending, bool& ended)
+void TopiaryModel::getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended)
 {                  
 	// virtual
 	UNUSED(parent);

@@ -25,7 +25,7 @@ Some rules:
 */
 /////////////////////////////////////////////////////////////////////////////
 
-
+#pragma once
 #include "TopiaryListModel.h"
 
 class TopiaryTableList : public Component, 
@@ -51,6 +51,7 @@ public:
 	bool isHeaderSet();
 	void setHeader();
 	void setModel(TopiaryListModel* model);
+	void setPattern(int p);
 
 private:
 	TableListBox tableComponent{ {}, this };
@@ -61,6 +62,7 @@ private:
 	int numRows = 0;
 	bool headerSet = false;
 	TopiaryListModel* model;
+	int pattern = -1;
 
 	class EditableTextCustomComponent : public Label
 	{

@@ -84,7 +84,8 @@ class Topiary
 	{
 		NoteOn = 1,
 		NoteOff = 2,
-		CC = 3
+		CC = 3,
+		NOP = 99
 	};
 
 	enum Quantization : int
