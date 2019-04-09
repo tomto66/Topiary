@@ -181,21 +181,6 @@ bool TOPIARYMODEL::getVariationEnabled(int v)
 
 ///////////////////////////////////////////////////////////////////////
 
-void TOPIARYMODEL::getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended)
-{
-	jassert(false); // needs rework
-	/*
-	parentLength = variation[variationRunning].pattern.patLenInTicks;
-	ending = variation[variationRunning].ending;
-	ended = variation[variationRunning].ended;
-	parent = variation[variationRunning].pattern;
-	noteChild = variation[variationRunning].currentPatternChild;
-	*/
-
-} // getVariationDetailForGenerateMidi
-
-///////////////////////////////////////////////////////////////////////
-
 bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi - to see if a variation is changed, and if so whether to switch now (and make the switch)
 {
 	// next block goes from blockCursor to blockCursor+blockSize;
@@ -351,7 +336,7 @@ bool TOPIARYMODEL::switchingVariations()
 
 } // switchingVariations
 
-/*
+/*  FOR TESTING THIS IS NOW IN BEATSMODEL.cpp
 ///////////////////////////////////////////////////////////////////////
 
 void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
@@ -393,6 +378,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		measure = 0;
 		beat = 0;
 		tick = 0;
+		noteOffBuffer.bufferSize = 0;
 	}
 	else
 	{
@@ -731,6 +717,10 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		}
 
 	}
+
+	/* do any note off events schedules for this block
+
+	while (noteO
 	
 	blockCursor = blockCursor + blockSize;
 

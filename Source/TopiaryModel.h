@@ -204,10 +204,11 @@ protected:
 	int transitioningFrom = -1;  // set when we are generating
 	int transitioningTo = -1;
 
-	int threadRunnerState; // NothingToDo --> Generating --> DoneGenerating (and back to nothingToGenerate when what was generated was applied (the latter for presetz only for now)
+	int previousMeasure; // needed to decide to start regeneration
 
 	MidiBuffer modelEventBuffer;		// for msgs caused by the editor
 	
+	int recordChannel = 1;  // default channel for recording
 
 	/////////////// Automation
 

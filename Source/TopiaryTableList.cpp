@@ -299,8 +299,8 @@ String TopiaryTableList::setText(const int columnNumber, const int rowNumber, co
 	{
 		model->validateTableEdit(pattern, dataList->getChildElement(rowNumber), columnName);
 		int remember = tableComponent.getSelectedRow(0);
-		model->fillDataList(dataList);	// update contents
-		tableComponent.updateContent();
+		//model->fillDataList(dataList);	// update contents
+		updateContent();
 		selectRow(remember);
 	}
 

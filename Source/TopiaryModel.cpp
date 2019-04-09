@@ -412,7 +412,6 @@ void TopiaryModel::setRunState(int n)
 			blockCursor = 0;
 			cursorToStop = (int64)-1;
 			
-			threadRunnerState = Topiary::ThreadRunnerState::NothingToDo;
 			broadcaster.sendActionMessage(MsgTransport);
 			break;
 

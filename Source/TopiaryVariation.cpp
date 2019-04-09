@@ -17,13 +17,16 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
+#pragma once
 #include "TopiaryVariation.h"
+#include "../../Topiary/Source/TopiaryVariation.h"
 
 TopiaryVariation::TopiaryVariation()
 {
+	// never in a table so no header	
 	numItems = 0; // empty list
 
-} // TopiaryVariation
+} // TopiaryPattern
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -43,40 +46,46 @@ void TopiaryVariation::del(int n)
 	}
 
 	numItems--;
+	for (int i = 0; i < numItems; i++)
+		dataList[i].ID = i + 1;
 
 } // del
 
 /////////////////////////////////////////////////////////////////////////////
 
-void TopiaryVariation::add(int timestamp, note, length, velocity)
+void TopiaryVariation::add()
 {
 	jassert(numItems < (maxItems + 1));
 
 	// adds new one
-	dataList[numItems].note = note;
 	dataList[numItems].ID = numItems + 1;
-	dataList[numItems].velocity = velocity;
-	dataList[numItems].length = length;
-	dataList[numItems].timestamp = timestamp;
 	numItems++;
 
 } // add
+
 
 /////////////////////////////////////////////////////////////////////////////
 
 void TopiaryVariation::sortByID()
 {
-	// sorts and then renumbers by ID 
+	// sorts and then renumbers by ID (one might have been deleted)
+	// IDs to delete are set to Topiary::ToDeleteID
+
+	//bool done;
 
 	for (int i = 0; i <= numItems; i++)
 	{
+		//done = true;
 		for (int j = i + 1; j < numItems; j++)
 		{
 			if (dataList[i].ID > dataList[j].ID)
 			{
 				swap(i, j);
+				//done = false;
 			}
 		}
+		//if (done)
+		//	i = numItems;
 	};
 
 	renumber();
@@ -84,6 +93,36 @@ void TopiaryVariation::sortByID()
 } // sortByID
 
 /////////////////////////////////////////////////////////////////////////////
+
+void TopiaryVariation::sortByTimestamp(bool keepIDs)
+{
+	// sorts and then renumbers by ID (one might have been deleted)
+	// IDs to delete are set to Topiary::ToDeleteID
+
+	bool done;
+
+	for (int i = 0; i <= numItems; i++)
+	{
+		done = true;
+		for (int j = i + 1; j < numItems; j++)
+		{
+			if (dataList[i].timestamp > dataList[j].timestamp)
+			{
+				swap(i, j);
+				done = false;
+			}
+		}
+		if (done)
+			i = numItems;
+	};
+
+	if (!keepIDs)
+		renumber();
+
+} // sortByID
+
+/////////////////////////////////////////////////////////////////////////////
+
 
 void TopiaryVariation::renumber()
 {
@@ -93,5 +132,21 @@ void TopiaryVariation::renumber()
 
 /////////////////////////////////////////////////////////////////////////////
 
+int TopiaryVariation::findID(int ID)
+{
+	// returns index of the ID; creates new record with that ID if not found
+	int i = 0;
+	while ((dataList[i].ID != ID) && (i < numItems))
+		i++;
 
+	if (i == numItems)
+	{
+		add();
+		return (numItems-1);
+	}
+	else
+		return i;
 
+} // findID
+
+/////////////////////////////////////////////////////////////////////////////

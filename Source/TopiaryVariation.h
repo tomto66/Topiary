@@ -18,37 +18,47 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Topiary.h"
+#include "../../Topiary/Source/TopiaryListModel.h"
 
-class TopiaryVariation
-{ // there is never a table to edit this one, so no header either!!!
+class TopiaryBeatsModel;
+
+class TopiaryVariation : public TopiaryListModel
+{
 
 public:
 	TopiaryVariation();
 	~TopiaryVariation();
-	int numItems;
-
-	void sortByID(); // sort by index n (order in which the variables are in the struct
-	void del(int n);
-	void add(int timestamp note, length, velocity);
 	
-	//static const int headerListItems = 5;
+
+	void sortByID() override; 
+	void sortByTimestamp(bool keepIDs=false);
+	void del(int n) override;
+	void add();
+	int findID(int ID); // returns index of the ID; creates new record with that ID if not found
+
 	static const int maxItems = 16000;
 
-	struct data 
+	struct data // MUST match what has been defined in the headerlist data!!!
 	{
 		int ID;
 		int note;
 		int length;
 		int velocity;
-		int timestamp;
+		int timestamp;  
+		int midiType;   
+		int channel;	
+		int value;		
+		int CC;		
 	};
 
-	data dataList[maxItems];	
-	void renumber();
+    	int patLenInTicks; // not in header
+	data dataList[maxItems];
 
+	void renumber() override;
+	void swapPatternData(data a, data b);
 
 private:
+	
 	void swap(int from, int to)
 	{
 		int rememberN;
@@ -61,11 +71,11 @@ private:
 		rememberN = dataList[from].timestamp;
 		dataList[from].timestamp = dataList[to].timestamp;
 		dataList[to].timestamp = rememberN;
-			
+		
 		rememberN = dataList[from].note;
 		dataList[from].note = dataList[to].note;
 		dataList[to].note = rememberN;
-		
+
 		rememberN = dataList[from].length;
 		dataList[from].length = dataList[to].length;
 		dataList[to].length = rememberN;
@@ -74,10 +84,23 @@ private:
 		dataList[from].velocity = dataList[to].velocity;
 		dataList[to].velocity = rememberN;
 
+		rememberN = dataList[from].midiType;
+		dataList[from].midiType = dataList[to].midiType;
+		dataList[to].midiType = rememberN;
+
+		rememberN = dataList[from].channel;
+		dataList[from].channel = dataList[to].channel;
+		dataList[to].channel = rememberN;
+
+		rememberN = dataList[from].CC;
+		dataList[from].CC = dataList[to].CC;
+		dataList[to].CC = rememberN;
+
+		rememberN = dataList[from].value;
+		dataList[from].value = dataList[to].value;
+		dataList[to].value = rememberN;
+
 	} // swap
 
 }; // TopiaryVariation
-
-
-
 
