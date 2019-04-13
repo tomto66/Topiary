@@ -71,22 +71,33 @@ void TopiaryVariation::sortByID()
 	// sorts and then renumbers by ID (one might have been deleted)
 	// IDs to delete are set to Topiary::ToDeleteID
 
-	//bool done;
+	bool done;
 
-	for (int i = 0; i <= numItems; i++)
+	for (int i = 0; i < (numItems-1); i++)
 	{
-		//done = true;
-		for (int j = i + 1; j < numItems; j++)
+		done = true;
+		for (int j = i+1; j < numItems; j++)
 		{
-			if (dataList[i].ID > dataList[j].ID)
+			if (dataList[j].ID < dataList[i].ID)
 			{
 				swap(i, j);
-				//done = false;
+				done = false;
+			}
+
+			if ((dataList[j].ID > dataList[j + 1].ID) && (j < (numItems - 1)))
+			{
+				swap(j+1, j);
+				j--;
+				done = false;
 			}
 		}
-		//if (done)
-		//	i = numItems;
+		if (done)
+			i = numItems;
 	};
+
+	// DEBUG check if sorted
+	for (int i = 0; i < (numItems - 1); i++)
+		if (dataList[i].ID > dataList[i + 1].ID) jassert(false);
 
 	renumber();
 
@@ -99,22 +110,56 @@ void TopiaryVariation::sortByTimestamp(bool keepIDs)
 	// sorts and then renumbers by ID (one might have been deleted)
 	// IDs to delete are set to Topiary::ToDeleteID
 
-	bool done;
+	bool done=true;
 
-	for (int i = 0; i <= numItems; i++)
+	for (int i = 0; i < (numItems-1); i++)
 	{
 		done = true;
-		for (int j = i + 1; j < numItems; j++)
+		for (int j = i+1; j < numItems; j++)
 		{
 			if (dataList[i].timestamp > dataList[j].timestamp)
 			{
+				/*
+				for (int k = 0; k < numItems; k++)
+				{
+					if ((k == j)) Logger::outputDebugString(">>>>> swap "+String(i)+" "+String(j));
+					Logger::outputDebugString("<" + String(k) + "> <ID" + String(dataList[k].ID) + "> Note: " + String(dataList[k].note) + " timestamp " + String(dataList[k].timestamp));
+				}
+				*/
 				swap(i, j);
+				done = false;
+			}
+		
+			if ((dataList[j].timestamp > dataList[j + 1].timestamp) && (j < (numItems - 1)))
+			{
+				/*
+				for (int k = 0; k < numItems; k++)
+				{
+					if ((k == (j+1))) Logger::outputDebugString(">>>>> swap" + String(j+1) + " " + String(j));
+					else if ((dataList[k].timestamp > dataList[k + 1].timestamp)) Logger::outputDebugString(">>");
+					Logger::outputDebugString("<" + String(k) + "> <ID" + String(dataList[k].ID) + "> Note: " + String(dataList[k].note) + " timestamp " + String(dataList[k].timestamp));
+				}*/
+				swap(j+1, j);
+				j--; // because j+1 might also be smaller than i !!!!
 				done = false;
 			}
 		}
 		if (done)
 			i = numItems;
 	};
+
+	// DEBUG check if sorted
+	for (int i = 0; i < (numItems - 1); i++)
+		if (dataList[i].timestamp > dataList[i + 1].timestamp)
+		{
+			/*
+			for (int k = 0; k < numItems; k++)
+			{
+				if ((dataList[k].timestamp > dataList[k + 1].timestamp)) Logger::outputDebugString(">>");
+				Logger::outputDebugString("<" + String(k) + "> <ID" + String(dataList[k].ID) + "> Note: " + String(dataList[k].note) + " timestamp " + String(dataList[k].timestamp));
+			}*/
+			jassert(false);
+		}
 
 	if (!keepIDs)
 		renumber();

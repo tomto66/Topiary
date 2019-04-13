@@ -156,9 +156,6 @@ void TopiaryModel::Log(String s, int logType)
 	case Topiary::LogType::MidiOut:
 		if (!logMidiOut) return;
 		break;
-	case Topiary::LogType::Debug:
-		if (!logDebug) return;
-		break;
 	case Topiary::LogType::Warning:
 		if (!logWarning) return;
 		break;
@@ -203,7 +200,7 @@ String TopiaryModel::getLastWarning()
 
 ///////////////////////////////////////////////////////////////////////
 
-void TopiaryModel::setLogSettings(bool warning, bool midiIn, bool midiOut, bool debug, bool transport, bool variations, bool info)
+void TopiaryModel::setLogSettings(bool warning, bool midiIn, bool midiOut, bool transport, bool variations, bool info)
 {
 	bool updateNeeded = false;
 
@@ -222,12 +219,6 @@ void TopiaryModel::setLogSettings(bool warning, bool midiIn, bool midiOut, bool 
 	else if (logMidiOut != midiOut)
 	{
 		logMidiOut = midiOut;
-		updateNeeded = true;
-	}
-
-	else if (logDebug != debug)
-	{
-		logDebug = debug;
 		updateNeeded = true;
 	}
 
@@ -265,12 +256,11 @@ void TopiaryModel::clearLog()
 
 ///////////////////////////////////////////////////////////////////////
 
-void TopiaryModel::getLogSettings(bool& warning, bool& midiIn, bool& midiOut, bool& debug, bool &transport, bool &variations, bool &info)
+void TopiaryModel::getLogSettings(bool& warning, bool& midiIn, bool& midiOut, bool &transport, bool &variations, bool &info)
 {
 	warning = logWarning;
 	midiIn = logMidiIn;
 	midiOut = logMidiOut;
-	debug = logDebug;
 	transport = logTransport;
 	variations = logVariations;
 	info = logInfo;
@@ -573,7 +563,7 @@ void TopiaryModel::setSampleRate(double sr)
 	{
 		sampleRate = sr;
 		recalcRealTime(); // housekeeping
-		Log(String("Samplerate set to ") + String(sampleRate) + String("."), Topiary::LogType::Debug);
+		Log(String("Samplerate set to ") + String(sampleRate) + String("."), Topiary::LogType::Info);
 	}
 
 } // setSampleRate

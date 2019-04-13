@@ -200,9 +200,9 @@ String validateNote(String newNote)
 		return "C2";
 
 	if (sharp == '!')
-		validatedNote = String(&note,1) + String(number);
+		validatedNote = String(&note,1).toUpperCase() + String(number);
 	else 
-		validatedNote = String(&note,1) + String("#") + String(number);
+		validatedNote = String(&note,1).toUpperCase() + String("#") + String(number);
 
 	//Logger::outputDebugString(String("input ") + String(newNote));
 	//Logger::outputDebugString(String("output ") + String(validatedNote));

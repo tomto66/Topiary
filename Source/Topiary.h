@@ -112,7 +112,6 @@ class Topiary
 
 	enum LogType : int
 	{
-		Debug = 0,		// low lever info for debugging
 		Warning = 1,	// things that go wrong, user error
 		MidiIn = 2,		// monitor incoming midi
 		MidiOut = 3,	// monitor outgoing midi

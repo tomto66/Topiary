@@ -39,9 +39,9 @@ public:
 	String* getLog();
 	String getLastWarning();
 	void Log(String s, int logType);
-	void setLogSettings(bool warning, bool midiIn, bool midiOut, bool debug, bool transport, bool variations, bool info);
+	void setLogSettings(bool warning, bool midiIn, bool midiOut, bool transport, bool variations, bool info);
 	void clearLog();
-	void getLogSettings(bool& warning, bool& midiIn, bool& midiOut, bool& debug, bool &transport, bool &variations, bool &info);
+	void getLogSettings(bool& warning, bool& midiIn, bool& midiOut, bool &transport, bool &variations, bool &info);
 	void getMidiLogSettings(bool &in, bool &out);
 	void logMidi(bool in, MidiMessage &msg); // in denotes msg in or msg out
 
@@ -208,8 +208,6 @@ protected:
 
 	MidiBuffer modelEventBuffer;		// for msgs caused by the editor
 	
-	int recordChannel = 1;  // default channel for recording
-
 	/////////////// Automation
 
 	int variationSwitch[8];				// either notes for each variation, of CC numbers
@@ -221,66 +219,6 @@ protected:
 	int patternSelectedInPatternEditor = -1; // needed to that when setting "record" we can check whether the pattern being edited is actually going to run 
 
 	String filePath;
-
-	///////////////////////////////////////////////////////////////////////////////
-
-	class DataSorter
-	{
-	public:
-		DataSorter(const String& attributeToSortBy, bool forwards)
-			: attributeToSort(attributeToSortBy),
-			direction(forwards ? 1 : -1)
-		{}
-
-		int compareElements(XmlElement* first, XmlElement* second) const
-		{
-			auto result = first->getStringAttribute(attributeToSort)
-				.compareNatural(second->getStringAttribute(attributeToSort));
-
-			if (result == 0)
-				result = first->getStringAttribute("ID")
-				.compareNatural(second->getStringAttribute("ID"));
-
-			return direction * result;
-		}
-
-	private:
-		String attributeToSort;
-		int direction;
-
-	}; // class DataSorter
-
-	///////////////////////////////////////////////////////////////////////
-
-	void renumberByID(XmlElement *list)
-	{  // resort by RealID and reset all IDs
-		DataSorter sorter("REALID", true);
-		list->sortChildElements(sorter);
-		XmlElement* child = list->getFirstChildElement();
-		int id = 1;
-		while (child != nullptr)
-		{
-			child->setAttribute("ID", id);
-			id++;
-			child = child->getNextElement();
-		}
-	} // renumberByID
-
-	///////////////////////////////////////////////////////////////////////
-
-	void renumberByTimestamp(XmlElement *list)
-	{  // resort by timestamp and set the Ids in that order
-		DataSorter sorter("Timestamp", true);
-		list->sortChildElements(sorter);
-		XmlElement* child = list->getFirstChildElement();
-		int id = 1;
-		while (child != nullptr)
-		{
-			child->setAttribute("ID", id);
-			id++;
-			child = child->getNextElement();
-		}
-	} // renumberByTimestamp
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -369,7 +307,7 @@ protected:
 		if (denominator == 0) return;
 		ticksPerBeat = Topiary::TICKS_PER_QUARTER * 4 / denominator;
 		samplesPerTick = (double)sampleRate / ((double)ticksPerBeat * BPM / 60.0);
-		Log("Samples per tick" + String(samplesPerTick), Topiary::LogType::Debug);
+		Log("Samples per tick" + String(samplesPerTick), Topiary::LogType::Info);
 
 	} // recalcRealTime
 
@@ -394,73 +332,6 @@ protected:
 			broadcaster.sendActionMessage(MsgTiming);
 		}
 	} // calcMeasureBeat
-
-	///////////////////////////////////////////////////////////////////////
-/*
-	void nextTick(XmlElement* parent, XmlElement** child)
-	{	// assert that parent has at least 1 child of each!!! (do a walk to a tick first!)
-		// this one loops around the pattern
-
-		*child = (*child)->getNextElement();
-		if (*child == nullptr)
-		{
-			*child = parent->getFirstChildElement();
-			//Logger::outputDebugString(String("-------- LOOPING OVER END OFF PATTERN ==================== "));
-		}
-
-	}  // nextTick
-	*/
-
-	
-
-	///////////////////////////////////////////////////////////////////////
-	/*
-	bool walkToTick(XmlElement* parent, XmlElement** child, int toTick, int& childIndex)
-	{ 
-		// Find the first child on or after this tick, starting from current child; 
-		// Caller has to make sure that child is child of parent, or pass nullptr to initialize
-		// Return false if pattern is empty or nothing to do within the blockSize; if empty then child == nullptr; 
-		// This loops around the pattern! 
-		// returns childIndex when called from recording (before record we set nextPatternChild to nullptr to make this correct)
-		// returns correct prevChild if there is one
-
-		int childTick;
-		childIndex = 0;
-
-
-		if (*child == nullptr)
-		{
-			*child = parent->getFirstChildElement(); // initialize
-			if (*child == nullptr)
-			{
-				return false; // empty pattern!
-			}
-		}
-		childTick = (*child)->getIntAttribute("Timestamp");
-
-		while (childTick < toTick)
-		{   // as long as our child is behind time we're looking for
-			//*prevChild = *child;
-			*child = (*child)->getNextElement();
-			childIndex++;
-			if (*child == nullptr) break; // there are no events afther the given time
-			childTick = (*child)->getIntAttribute("Timestamp");
-		}
-
-		if (*child == nullptr)
-		{
-			//*prevChild = *child;
-			*child = parent->getFirstChildElement();
-			return true;
-			
-		}
-		return true;
-
-	} // walkToTick
-	*/
-
-	
-	///////////////////////////////////////////////////////////////////////
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TopiaryModel)
 };
