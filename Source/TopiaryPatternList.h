@@ -18,35 +18,25 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Topiary.h"
+#include "../../Topiary/Source/TopiaryListModel.h"
 
-class TopiaryPatternList
-{
+class TopiaryBeatsModel;
+
+class TopiaryPatternList : public TopiaryListModel
+{ 
 
 public:
 	TopiaryPatternList();
 	~TopiaryPatternList();
-	int numItems;
-	
-	void sortByID(); // sort by index n (order in which the variables are in the struct
-	void del(int n);
-	void add();
+
+	void sortByID() override; // sort by index n (order in which the variables are in the struct
+	void del(int n) override;
+	void add() override;
 	void duplicate(int i);
+	void addToModel(XmlElement *model);
+	void getFromModel(XmlElement *model);
 
-	struct header
-	{
-		int columnID;
-		String name;
-		int width;
-		int type;  // define the type values !!
-		bool editable;
-		int min = 0;
-		int max = 0;
-	};
-
-	static const int headerListItems = 3;
 	static const int maxItems = 8;
-	header headerList[headerListItems];
 	
 	struct data // MUST match what has been defined in the headerlist data!!!
 	{
@@ -57,42 +47,21 @@ public:
 	
 	data dataList[maxItems];
 	 
-	void fillDataList(XmlElement* dList);
+	void fillDataList(XmlElement* dList) override;
 	
-	//int getIntByID(int row, int ID);
-	void setIntByIndex(int row, int o, int newInt);
+	void setIntByIndex(int row, int o, int newInt) override;
 	
-	//String getStringByID(int row, int ID);
-	void setStringByIndex(int row, int i, String newString);
-
-	int getColumnIndexByName(String name);
+	void setStringByIndex(int row, int i, String newString) override;
+	
 
 private:
+
 	void swap(int from, int to)
 	{
-		int rememberN;
-		String rememberS;
-		
-		rememberN = dataList[from].ID;
-		dataList[from].ID = dataList[to].ID;
-		dataList[to].ID = rememberN;
-		
-		rememberN = dataList[from].measures;
-		dataList[from].measures = dataList[to].measures;
-		dataList[to].measures = rememberN;
-		
-		rememberS = dataList[from].name;
-		dataList[from].name = dataList[to].name;
-		dataList[to].name = rememberS;
+		intSwap(dataList[from].ID, dataList[to].ID);
+		intSwap(dataList[from].measures, dataList[to].measures);
+		stringSwap(dataList[from].name, dataList[to].name);
 	} // swap
 	
 }; // TopiaryPatternList
-
-#undef TOPIARYLISTMODEL
-#undef TOPIARYTABLE
-#define TOPIARYLISTMODEL TopiaryPatternList
-#define TOPIARYTABLE PatternListTable
-#include "TopiaryTableList.h" // header for PatternListTable
-
-   //////////////////////////////////////////////////////////////////
 

@@ -17,12 +17,14 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
+#pragma once
 #include "TopiaryPoolList.h"
+#include "TopiaryBeatsModel.h"
 
 TopiaryPoolList::TopiaryPoolList()
 {
 	// initialize the headerlist data
-
+	headerListItems = 5;
 	// headerlist IDs start at 1;
 	// datalist IDs start at 1;
 
@@ -31,32 +33,39 @@ TopiaryPoolList::TopiaryPoolList()
 	headerList[0].width = 20;
 	headerList[0].type = Topiary::HeaderType::Int;
 	headerList[0].editable = false;
+	headerList[1].visible = true;
 
 	headerList[1].columnID = 2;
 	headerList[1].name = "Note";
 	headerList[1].width = 50;
 	headerList[1].type = Topiary::HeaderType::Int;
 	headerList[1].editable = false;
+	headerList[1].visible = true;
 
 	headerList[2].columnID = 3;
 	headerList[2].name = "Label";
 	headerList[2].width = 50;
 	headerList[2].type = Topiary::HeaderType::NoteLabel;
 	headerList[2].editable = true;
+	headerList[2].visible = true;
 
 	headerList[3].columnID = 4;
 	headerList[3].name = "Description";
 	headerList[3].width = 110;
 	headerList[3].type = Topiary::HeaderType::String;
 	headerList[3].editable = true;
+	headerList[3].visible = true;
 
-	headerList[4].columnID = 2;
+	headerList[4].columnID = 5;
 	headerList[4].name = "Pool";
 	headerList[4].width = 40;
 	headerList[4].type = Topiary::HeaderType::Int;
-	headerList[4].editable = false;
+	headerList[4].editable = true;
 	headerList[4].min = 1;
 	headerList[4].max = 4;
+	headerList[4].visible = true;
+
+	
 
 	numItems = 0; // empty list
 
@@ -75,12 +84,10 @@ void TopiaryPoolList::setIntByIndex(int row, int i, int newInt)
 
 	jassert(row < numItems);
 	jassert(i < headerListItems);
-	if (i == 0)
-		dataList[row].ID = newInt;
-	else if (i == 2)
-		dataList[row].note = newInt;
-	else if (i == 5)
+	if (i == 4)
 		dataList[row].pool = newInt;
+	else if (i == 1)
+		dataList[row].note = newInt;
 	else
 	{
 		jassert(false); // wrong type
@@ -95,9 +102,9 @@ void TopiaryPoolList::setStringByIndex(int row, int i, String newString)
 
 	jassert(row < numItems);
 	jassert(i < headerListItems);
-	if (i == 3)
+	if (i == 2)
 		dataList[row].label = newString;
-	else if (i == 4)
+	else if (i == 3)
 		dataList[row].description = newString;
 	else
 	{
@@ -117,6 +124,9 @@ void TopiaryPoolList::del(int n)
 	}
 
 	numItems--;
+	// set the IDs correctly
+	for (int i = 0; i < numItems; i++)
+		dataList[i].ID = i + 1;
 
 } // del
 
@@ -129,7 +139,6 @@ void TopiaryPoolList::add()
 	// adds new empty one
 	dataList[numItems].note = 1;
 	dataList[numItems].label = MidiMessage::getMidiNoteName(1, true, true, 5);
-	dataList[numItems].description = dataList[numItems].label;
 	dataList[numItems].pool = 1;
 	dataList[numItems].ID = numItems + 1;
 	numItems++;
@@ -148,6 +157,28 @@ void TopiaryPoolList::sortByID()
 		for (int j = i + 1; j < numItems; j++)
 		{
 			if (dataList[i].ID > dataList[j].ID)
+			{
+				swap(i, j);
+			}
+		}
+	};
+
+	renumber();
+
+} // sortByID
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPoolList::sortByNote()
+{
+	// sorts and then renumbers by ID (one might have been deleted)
+	// IDs to delete are set to Topiary::ToDeleteID
+
+	for (int i = 0; i <= numItems; i++)
+	{
+		for (int j = i + 1; j < numItems; j++)
+		{
+			if (dataList[i].note > dataList[j].note)
 			{
 				swap(i, j);
 			}
@@ -196,18 +227,64 @@ void TopiaryPoolList::fillDataList(XmlElement* dList)
 
 /////////////////////////////////////////////////////////////////////////////
 
-int TopiaryPoolList::getColumnIndexByName(String name)
+void TopiaryPoolList::addToModel(XmlElement *model)
 {
-	for (int i = 0; i < headerListItems; i++)
-		if (name.compare(headerList[i].name) == 0)
-			return i;
-	jassert(false); // column name not found
-	return(-1);
+	// adds the pattern data as XmlElement; *model should be <Pattern>
+	jassert(model->getTagName().equalsIgnoreCase("PoolList"));
+
+	for (int p = 0; p < numItems; p++)
+	{
+		XmlElement* child = new XmlElement("Data");
+		model->addChildElement(child);
+		child->setAttribute("ID", dataList[p].ID);
+		child->setAttribute("note", dataList[p].note);
+		child->setAttribute("pool", dataList[p].pool);
+		child->setAttribute("label", dataList[p].label);
+		child->setAttribute("description", dataList[p].description);
+	}
+
+} // addToModel
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPoolList::getFromModel(XmlElement *model)
+{
+	// adds the pattern data as XmlElement; *model should be <PatternList>
+	jassert(model->getTagName().equalsIgnoreCase("PoolList"));
+
+	XmlElement* child = model->getFirstChildElement();
+	int index = 0;
+	while (child != nullptr)
+	{
+		dataList[index].ID = child->getIntAttribute("ID");
+		dataList[index].note = child->getIntAttribute("note");
+		dataList[index].pool = child->getIntAttribute("pool");
+		dataList[index].label = child->getStringAttribute("label");
+		dataList[index].description = child->getStringAttribute("description");
+		child = child->getNextElement();
+		index++;
+	}
+
+	numItems = index;
+
+} // getFromModel
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPoolList::validateTableEdit(int p, XmlElement* child, String attribute)
+{
+	// called by TopiaryTable
+	// careful - can be called when editing patterns but also when editing note pool entries!!
+	// do processing of user edits to notes and make sure all is consistent
+
+	beatsModel->validateTableEdit(p, child, attribute);
+
+} // validateTableEdit
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPoolList::setBeatsModel(TopiaryBeatsModel* m)
+{
+	beatsModel = m;
 }
-
-/////////////////////////////////////////////
-// Create the table model for this one
-/////////////////////////////////////////////
-
-#include "TopiaryTableList.cpp"
-

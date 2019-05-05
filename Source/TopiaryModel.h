@@ -32,7 +32,7 @@ public:
 	virtual void restoreStateFromMemoryBlock(const void* data, int sizeInBytes);
 	virtual void addParametersToModel();
 	virtual void restoreParametersToModel();
-	virtual void cleanPattern(int p); // if there were edits done, recalculate stuff
+	//virtual void cleanPattern(int p); // if there were edits done, recalculate stuff
 
 	////// Logger 
 
@@ -52,14 +52,14 @@ public:
 	void getTransportState(int& b, int& n, int& d, int& bs, bool& o, bool &waitFFN);
 	virtual void setOverrideHostTransport(bool o);
 	void removeRecordButton();
-	void setRunState(int n);
+	void setRunState(int n, bool lockIt=false);
 	int getRunState();
 	void processTransportControls(int buttonEnabled); // // buttonEnabled; 0=Stop; 1=start; 2=rec
 	
 	////// Variations
 
 	virtual int getVariationLenInTicks(int v);
-	virtual void setVariation(int v);
+	virtual void setVariation(int v, bool lockIt=true);
 	virtual bool getVariationEnabled(int v);
 	virtual void initializeVariationsForRunning();
 
@@ -143,9 +143,12 @@ public:
 	
 	void setPatternSelectedInPatternEditor(int p);  // needed to that when setting "record" we can check whether the pattern being edited is actually going to run 
 
+	void timestampToMBT(int t, int& m, int& b, int& tck);
+	void MBTToTick(int& t, int m, int b, int tck);
+
 protected:
 
-	SpinLock lockModel;
+	CriticalSection lockModel;
 	
 	std::unique_ptr<XmlElement> model;
 	
@@ -205,6 +208,8 @@ protected:
 	int transitioningTo = -1;
 
 	int previousMeasure; // needed to decide to start regeneration
+	int previousSteadyVariation = 0; // initialized when running starts; to first steady variation (if any) - otherwise it tries to pick any non-ending variation (intro or fill); if not it picks the ending one.
+	                             // maintained in processVariationSwitch (when doing the switch)
 
 	MidiBuffer modelEventBuffer;		// for msgs caused by the editor
 	
@@ -305,7 +310,7 @@ protected:
 		// lenght of 1 beat depends on denumerator (if 4 then beat == quarter)
 		if (numerator == 0) return; // not initialized!
 		if (denominator == 0) return;
-		ticksPerBeat = Topiary::TICKS_PER_QUARTER * 4 / denominator;
+		ticksPerBeat = Topiary::TicksPerQuarter * 4 / denominator;
 		samplesPerTick = (double)sampleRate / ((double)ticksPerBeat * BPM / 60.0);
 		Log("Samples per tick" + String(samplesPerTick), Topiary::LogType::Info);
 
@@ -318,7 +323,7 @@ protected:
 		int64 cursorInTicks = (int64)floor(blockCursor / samplesPerTick);  // use BlockCursor instead of rtCursor as rtCursor might jump back & forth
 		int newMeasure = (int)floor(cursorInTicks / (ticksPerBeat* denominator)) + 1;
 
-		tick = cursorInTicks % Topiary::TICKS_PER_QUARTER;
+		tick = cursorInTicks % Topiary::TicksPerQuarter;
 		int newBeat = (int)floor(cursorInTicks / ticksPerBeat);
 		newBeat = (newBeat % denominator) + 1;
 

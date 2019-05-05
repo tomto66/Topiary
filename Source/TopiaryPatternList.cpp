@@ -17,12 +17,13 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 */
 /////////////////////////////////////////////////////////////////////////////
 
+#pragma once
 #include "TopiaryPatternList.h"
 
 TopiaryPatternList::TopiaryPatternList()
 {
 	// initialize the headerlist data
-	
+	headerListItems = 3;
 	// headerlist IDs start at 1;
 	// datalist IDs start at 1;
 	
@@ -31,19 +32,22 @@ TopiaryPatternList::TopiaryPatternList()
 	headerList[0].width = 20;
 	headerList[0].type = Topiary::HeaderType::Int;
 	headerList[0].editable = false;
-	
+	headerList[0].visible = true;
+
 	headerList[1].columnID = 2;
 	headerList[1].name = "Name";
 	headerList[1].width = 140;
 	headerList[1].type = Topiary::HeaderType::String;
 	headerList[1].editable = true;
-	
+	headerList[1].visible = true;
+
 	headerList[2].columnID = 3;
 	headerList[2].name = "Measures";
 	headerList[2].width = 70;
 	headerList[2].type = Topiary::HeaderType::Int;
 	headerList[2].editable = false;
-	
+	headerList[2].visible = true;
+
 	numItems = 0; // empty list
 	
 } // TopiaryPatternList
@@ -81,10 +85,10 @@ void TopiaryPatternList::setStringByIndex(int row, int i, String newString)
 	if (i == 1)
 		dataList[row].name = newString;
 	else
-	{
+	{  
 		jassert(false); // wrong type
 	}
-}
+} // setStringByIndex
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -98,7 +102,8 @@ void TopiaryPatternList::del(int n)
 	}
 
 	numItems--;
-
+	for (int i = 0; i < numItems; i++)
+		dataList[i].ID = i + 1;
 } // del
 
 /////////////////////////////////////////////////////////////////////////////
@@ -120,8 +125,10 @@ void TopiaryPatternList::add()
 
 void TopiaryPatternList::duplicate(int i)
 {
-	UNUSED(i)
-	// TO DO
+	add();
+	dataList[numItems - 1].name = dataList[i].name + "(dup)";
+	dataList[numItems - 1].measures = dataList[i].measures;
+	dataList[numItems].ID = numItems;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -163,20 +170,44 @@ void TopiaryPatternList::fillDataList(XmlElement* dList)
 	}
 }  // fillDataList
 
+/////////////////////////////////////////////////////////////////////////////
 
-int TopiaryPatternList::getColumnIndexByName(String name)
+void TopiaryPatternList::addToModel(XmlElement *model)
 {
-	for (int i = 0; i < headerListItems; i++)
-		if (name.compare(headerList[i].name) == 0)
-			return i;
-	jassert(false); // column name not found
-	return(-1);
-}
+	// adds the pattern data as XmlElement; *model should be <PatternList>
+	jassert(model->getTagName().equalsIgnoreCase("PatternList"));
 
-/////////////////////////////////////////////
-// Create the table model for this one
-/////////////////////////////////////////////
+	for (int p = 0; p < numItems; p++)
+	{
+		XmlElement* child = new XmlElement("PatternData");
+		model->addChildElement(child);
+		child->setAttribute("ID", dataList[p].ID);
+		child->setAttribute("name", dataList[p].name);
+		child->setAttribute("measures", dataList[p].measures);
+	}
 
-#include "TopiaryTableList.cpp"
+} // addToModel
+
+/////////////////////////////////////////////////////////////////////////////
+
+void TopiaryPatternList::getFromModel(XmlElement *model)
+{
+	// adds the pattern data as XmlElement; *model should be <PatternList>
+	jassert(model->getTagName().equalsIgnoreCase("PatternList"));
+
+	XmlElement* child = model->getFirstChildElement();
+	int index = 0;
+	while (child != nullptr)
+	{
+		dataList[index].ID = child->getIntAttribute("ID");
+		dataList[index].name = child->getStringAttribute("name");
+		dataList[index].measures = child->getIntAttribute("measures");
+		index++;
+		child = child->getNextElement();
+	}
+
+	numItems = index;
+
+} // getFromModel
 
 

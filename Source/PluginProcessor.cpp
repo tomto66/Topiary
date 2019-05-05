@@ -347,7 +347,7 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 
 	if (runState == Topiary::Running) 
 	{
-		bool wasRunning = (runState == Topiary::Running);
+		//bool wasRunning = (runState == Topiary::Running);
 		//Logger::outputDebugString(String(">>>>>>>>>>>>>>>>>>>Processor ready to check switchVariations Running ")+String((int)wasRunning));
 		if (model.switchingVariations())
 		{
@@ -358,8 +358,8 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 				// meaning we just did the switch
 				// do any remaining notes off
 				
-				if (wasRunning)
-					model.endNotesOn(&processedMidi);
+				//if (wasRunning)
+					//model.endNotesOn(&processedMidi);
 			}
 		}
 	}
@@ -368,17 +368,19 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 	{
 		if (model.processEnding())
 		{
-			model.endNotesOn(&processedMidi);
+			//model.endNotesOn(&processedMidi);
 			runState = Topiary::Stopped; // already set to Stopped in the model by processEnding if true; so no need to do that again
 		}
 	}
 
 	//Logger::outputDebugString(String(">>>>>>>>>>>>>>>>>>>Processor ready to run Running ") + String((int)runState));
 
-	if ((runState == Topiary::Running) || (runState == Topiary::Ending))
-	{
-		model.generateMidi(&processedMidi, &midiMessages); // midiMessages might contain data to record
-	}
+	//if ((runState == Topiary::Running) || (runState == Topiary::Ending))
+	
+	// always call generateMidi - even though we are note Running and not Ending, there may be noteOff events to process
+
+	model.generateMidi(&processedMidi, &midiMessages); // midiMessages might contain data to record; 
+	
 
 	midiMessages.swapWith(processedMidi);
 

@@ -28,7 +28,8 @@ const Colour TopiaryColour::brightBlue = Colour(3, 100, 165); // blue, also used
 const Colour TopiaryColour::lightBlue = Colour(0, 150, 250); // blue (thumb)
 const Colour TopiaryColour::darkBlue = Colour(0, 60, 110); // blue (dark trace)
 const Colour TopiaryColour::orange = Colour(255, 138, 0);
-const Colour TopiaryColour::yellow = Colour(127, 127, 0);
+const Colour TopiaryColour::yellow = Colour(255, 255, 0);
+const Colour TopiaryColour::purple = Colour(172, 0, 172);
 const Colour TopiaryColour::paleBlue = Colour(178, 227, 237);
 
 TopiaryLookAndFeel::TopiaryLookAndFeel()
@@ -60,7 +61,7 @@ void TopiaryLookAndFeel::drawTopiaryButtonBackground(Graphics& g,
 		
 		// if specialState == armed (3) or ending(5) or recording (7) we do something special
 		if (button.specialState == 3) 		baseColour = TopiaryColour::orange;
-		else if (button.specialState == 5)  baseColour = TopiaryColour::yellow;
+		else if (button.specialState == 5)  baseColour = TopiaryColour::purple;
 		else if (button.specialState == 7)  baseColour = TopiaryColour::rec; // recording
 		
 	}
@@ -78,7 +79,7 @@ void TopiaryLookAndFeel::drawTopiaryButtonBackground(Graphics& g,
 		else
 		{
 			if (button.specialState == Topiary::TopiaryButtonSpecialState::waitToEnd)		
-				baseColour = TopiaryColour::yellow;
+				baseColour = TopiaryColour::purple;
 			else baseColour = TopiaryColour::brightBlue;
 		}	
 	}

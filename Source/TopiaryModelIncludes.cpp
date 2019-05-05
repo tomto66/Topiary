@@ -36,8 +36,8 @@ void TOPIARYMODEL::setOverrideHostTransport(bool o)
 {
 	if (overrideHostTransport != o)
 	{
-		{   // block with a spinlock
-			const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+		{   // block with a lock
+			const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
 			if (o)
 				overrideHostTransport = o;
 			else
@@ -53,13 +53,13 @@ void TOPIARYMODEL::setOverrideHostTransport(bool o)
 				else
 					Log("Host can only be in control if there is at least one enabled variation.", Topiary::LogType::Warning);
 			}
-		} // end spinlock
+		} // end lock
 
 		broadcaster.sendActionMessage(MsgTransport);
 		// careful here - if we just set the runstate to Stopped - it might have been stopped already and variables may be undefined
 		// dirty hack below
 		{
-			const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+			const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
 			runState = -1000000; // to force a runstate stopped below!!!
 		}
 		setRunState(Topiary::Stopped);
@@ -81,7 +81,7 @@ void TOPIARYMODEL::setOverrideHostTransport(bool o)
 
 void TOPIARYMODEL::setNumeratorDenominator(int nu, int de)
 {
-	const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+	
 	if ((numerator != nu) || (denominator != de))
 	{
 #ifndef PRESETZ
@@ -93,6 +93,7 @@ void TOPIARYMODEL::setNumeratorDenominator(int nu, int de)
 			return;
 		}
 #endif	
+		const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
 		numerator = nu;
 		denominator = de;
 		recalcRealTime();
@@ -115,7 +116,7 @@ void TOPIARYMODEL::getVariation(int& running, int& selected)
 ///////////////////////////////////////////////////////////////////////
 
 
-void TOPIARYMODEL::setVariation(int n)
+void TOPIARYMODEL::setVariation(int n, bool lockIt)
 {
 	jassert(n < 8);
 	jassert(n >= 0);
@@ -130,12 +131,16 @@ void TOPIARYMODEL::setVariation(int n)
 	if ((n != variationSelected) || (runState == Topiary::Stopped))
 		// the || runState || is needed because we may need to re-set a waiting variation to non-waiting; in that case we want the update to happen otherwise the buttons stays orange
 	{
-		const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+		if (lockIt)
+			lockModel.enter();
+
 		variationSelected = n;
 		if (runState == Topiary::Stopped)  // otherwise the switch will be done when running depending on the variation switch Q
 			variationRunning = n;
 		//Log(String("Variation ") + String(n + 1) + String(" selected."), Topiary::LogType::Variations);
 		broadcaster.sendActionMessage(MsgVariationSelected);  // if the editor is there it will pick up the change in variation
+		if (lockIt)
+			lockModel.exit();
 	}
 
 #ifdef PRESETZ
@@ -188,8 +193,6 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 	// and both cursors go from 0 to the tickLength of that pattern
 	// we also know that we are currently at rtCursor, and given rtCursor and patternCursorOn we can calculate when the current pattern started in realtime 
 	
-	//const GenericScopedLock<SpinLock> myScopedLock(lockModel); 
-	
 	//Logger::outputDebugString(String("Sel ")+String(variationSelected)+String(" Running ")+String(variationRunning));
 	
 	if (variationSelected == variationRunning) return false;
@@ -215,19 +218,11 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 //Logger::outputDebugString("Need to switch, now ???");
 //Logger::outputDebugString("blockcursor "+String(blockCursor)+" NextRTcursor "+String(nextRTGenerationCursor));
 
-// nothing is going to happen now, so don't bother calculating
-//	if (nextRTGenerationCursor > (blockCursor + 2 * blockSize))
-//	{
-//		Logger::outputDebugString(" WAIT FOR NEXTRTGENERATIONCURSOR ---------------------------------------- >");
-//		return false;
-//	}
 	// first decide whether we should switch in this block
-
-	// we are at measure/beat/tick overall; time and tick apply to the pattern we are in, but not measure within the pattern so we calculate that by using patternCursorOn
-	//int patternMeasure = patternCursorOn % (numerator * Topiary::TICKS_PER_QUARTER);
+	// we are at measure/beat/tick overall; time and tick apply to the pattern we are in, but not measure within the pattern so we calculate that by using patternCursorO
 
 	//Logger::outputDebugString("Need to switch, now ???  Something is going to happen next");
-
+	calcMeasureBeat(); 
 	int64 cursorToSwitch = 0;  // time the switch should happen; if  cursorToSwitch < blockCursor+blockSize then we know we want to switch;
 	//Logger::outputDebugString("VariationStartQ " + String(variationStartQ));
 
@@ -242,21 +237,21 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 	case (Topiary::Measure):
 	{
 		// moment of next measure = blockCursor + time to next beat (ticksperquarter - tick) + #beats to go till end of measure			
-		cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TICKS_PER_QUARTER - tick - 1) + (numerator - beat - 1)* Topiary::TICKS_PER_QUARTER));
+		cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TicksPerQuarter - tick - 1) + (numerator - beat - 1)* Topiary::TicksPerQuarter));
 		//Logger::outputDebugString(String("MEASURE Sel ") + String(variationSelected) + String(" Running ") + String(variationRunning));
 		break;
 	}
 	case (Topiary::Quarter):
 	{
 		// moment of next beat = blockCursor + time to next beat (ticksperquarter - tick) 
-		cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TICKS_PER_QUARTER - tick - 1)));
+		cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TicksPerQuarter - tick - 1)));
 		//Logger::outputDebugString(String("QUARTER Sel ") + String(variationSelected) + String(" Running ") + String(variationRunning));
 		break;
 	}
 	//case (Topiary::Half):
 	//{
 		// moment of next beat = blockCursor + time to next beat (ticksperquarter - tick) 
-	//	cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TICKS_PER_QUARTER - tick - 1) + Topiary::TICKS_PER_QUARTER));
+	//	cursorToSwitch = (int64)(blockCursor + samplesPerTick * ((Topiary::TicksPerQuarter - tick - 1) + Topiary::TicksPerQuarter));
 	//	//Logger::outputDebugString(String("IMMEDIATE Half ") + String(variationSelected) + String(" Running ") + String(variationRunning));
 	//	break;
 	//}
@@ -285,11 +280,11 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 			break;
 		case (Topiary::SwitchWithinBeat): 
 			patternCursorOffset = 0;
-			patternCursor = patternCursor % Topiary::TICKS_PER_QUARTER;
+			patternCursor = patternCursor % Topiary::TicksPerQuarter;
 			break;
 		case (Topiary::SwitchWithinMeasure): 
 			patternCursorOffset = 0;
-			patternCursor = patternCursor % (Topiary::TICKS_PER_QUARTER*numerator);
+			patternCursor = patternCursor % (Topiary::TicksPerQuarter*numerator);
 			break;
 		case (Topiary::SwitchWithinPattern):	
 			patternCursorOffset = 0;
@@ -299,6 +294,11 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 
 		Log(String("Switch from variation ") + String(variationRunning) + String(" to ") + String(variationSelected), Topiary::LogType::Variations);
 		variationRunning = variationSelected;
+
+		if (variation[variationRunning].type == TopiaryBeatsModel::VariationTypeSteady)
+			previousSteadyVariation = variationRunning;
+
+
 #ifdef PRESETZ
 		threadRunnerState = Topiary::ThreadRunnerState::NothingToDo;
 #endif
@@ -342,7 +342,7 @@ bool TOPIARYMODEL::switchingVariations()
 void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 { // main Generator
 
-	const GenericScopedLock<SpinLock> myScopedLock(lockModel);
+	const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
 
 	/ *************************************************************************************************************************************************
 	Uses a lot of model variables!  Summary of what is needed for what here
@@ -732,7 +732,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef PRESETZ
-
+/*
 void TOPIARYMODEL::cleanPattern(int p)
 {
 	// if there were edits done, recalculate stuff
@@ -745,17 +745,19 @@ void TOPIARYMODEL::cleanPattern(int p)
 	jassert(p < 8);
 	
 	jassert(false); // still to do
-	/*XmlElement *child = patternData[p].noteData->getFirstChildElement();
+	XmlElement *child = patternData[p].noteData->getFirstChildElement();
 
 	while (child != nullptr)
 	{
 
 		child = child->getNextElement();
 	}
-	*/
+	
 } // cleanPattern
+*/
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 #endif

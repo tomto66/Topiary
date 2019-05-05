@@ -18,34 +18,31 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
-#include "Topiary.h"
+#include "../../Topiary/Source/TopiaryListModel.h"
 
-class TopiaryPattern
+class TopiaryBeatsModel;
+
+class TopiaryPattern : public TopiaryListModel
 {
 
 public:
 	TopiaryPattern();
 	~TopiaryPattern();
-	int numItems;
+	
 
-	void sortByID(); // sort by index n (order in which the variables are in the struct
-	void del(int n);
-	void add(int measure, beat, tick, note, length, velocity);
+	void sortByID() override; 
+	void sortByTimestamp(bool keepIDs=false);
+	void del(int n) override;
+	void add(int measure, int beat, int tick, int timestamp, int note, int length, int velocity);
+	void add();
+	void addToModel(XmlElement *model);
+	void getFromModel(XmlElement *model);
+	void validateTableEdit(int p, XmlElement* child, String attribute) override;
+	void setBeatsModel(TopiaryBeatsModel* m);
+	int findID(int ID); // returns index of the ID; creates new record with that ID if not found
+	void duplicate(TopiaryPattern* p);
 
-	struct header
-	{
-		int columnID;
-		String name;
-		int width;
-		int type;  // define the type values !!
-		bool editable;
-		int min = 0;
-		int max = 0;
-	};
-
-	static const int headerListItems = 8;
 	static const int maxItems = 16000;
-	header headerList[headerListItems];
 
 	struct data // MUST match what has been defined in the headerlist data!!!
 	{
@@ -57,70 +54,42 @@ public:
 		String label;
 		int length;
 		int velocity;
-		int timestamp; // not in header because not in the table !!!
+		int timestamp;  // not in header 
+		int midiType;   // not in header
+		int channel;	// not in header
+		int value;		// not in header
+		int CC;			// not in header
 	};
 
+    int patLenInTicks; // not in header
 	data dataList[maxItems];
 
-	void fillDataList(XmlElement* dList);
-	void setIntByIndex(int row, int o, int newInt);
-	void setStringByIndex(int row, int i, String newString);
-	int getColumnIndexByName(String name);
-	void renumber();
-
+	void fillDataList(XmlElement* dList) override;
+	void setIntByIndex(int row, int o, int newInt) override;
+	void setStringByIndex(int row, int i, String newString) override;
+	
+	void renumber() override;
+	void swapPatternData(data a, data b);
 
 private:
+	TopiaryBeatsModel* beatsModel;
 	void swap(int from, int to)
 	{
-		int rememberN;
-		String rememberS;
-
-		rememberN = dataList[from].ID;
-		dataList[from].ID = dataList[to].ID;
-		dataList[to].ID = rememberN;
-
-		rememberN = dataList[from].beat;
-		dataList[from].beat = dataList[to].beat;
-		dataList[to].beat = rememberN;
-		
-		rememberN = dataList[from].measure;
-		dataList[from].measure = dataList[to].measure;
-		dataList[to].measure = rememberN;
-		
-		rememberN = dataList[from].tick;
-		dataList[from].tick = dataList[to].tick;
-		dataList[to].tick = rememberN;
-
-		rememberN = dataList[from].timestamp;
-		dataList[from].timestamp = dataList[to].timestamp;
-		dataList[to].timestamp = rememberN;
-		
-		rememberN = dataList[from].note;
-		dataList[from].note = dataList[to].note;
-		dataList[to].note = rememberN;
-
-		rememberS = dataList[from].label;
-		dataList[from].label = dataList[to].label;
-		dataList[to].label = rememberS;
-
-		rememberN = dataList[from].length;
-		dataList[from].length = dataList[to].length;
-		dataList[to].length = rememberN;
-		
-		rememberN = dataList[from].velocity;
-		dataList[from].velocity = dataList[to].velocity;
-		dataList[to].velocity = rememberN;
+		intSwap(dataList[from].ID, dataList[to].ID);
+		intSwap(dataList[from].measure, dataList[to].measure);
+		intSwap(dataList[from].beat, dataList[to].beat);
+		intSwap(dataList[from].tick, dataList[to].tick);
+		intSwap(dataList[from].timestamp, dataList[to].timestamp);
+		intSwap(dataList[from].note, dataList[to].note);
+		intSwap(dataList[from].velocity, dataList[to].velocity);
+		intSwap(dataList[from].length, dataList[to].length);
+		intSwap(dataList[from].midiType, dataList[to].midiType);
+		intSwap(dataList[from].channel, dataList[to].channel);
+		intSwap(dataList[from].CC, dataList[to].CC);
+		intSwap(dataList[from].value, dataList[to].value);
+		stringSwap(dataList[from].label, dataList[to].label);
 
 	} // swap
 
 }; // TopiaryPattern
-
-#undef TOPIARYLISTMODEL
-#undef TOPIARYTABLE
-#define TOPIARYLISTMODEL TopiaryPattern
-#define TOPIARYTABLE PatternTable
-#include "TopiaryTableList.h" // header for PatternTable
-
-   //////////////////////////////////////////////////////////////////
-
 
