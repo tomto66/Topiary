@@ -603,18 +603,6 @@ void TopiaryModel::setBlockSize(int blocksz)
 
 ///////////////////////////////////////////////////////////////////////
 
-void TopiaryModel::getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended)
-{                  
-	// virtual
-	UNUSED(parent);
-	UNUSED(noteChild);
-	UNUSED(parentLength);
-	UNUSED(ending);
-	UNUSED(ended);
-} //getVariationDetailForGenerateMidi
-
-///////////////////////////////////////////////////////////////////////
-
 void TopiaryModel::generateMidi(MidiBuffer *buffer, MidiBuffer* recBuffer)
 {
 	UNUSED(buffer)

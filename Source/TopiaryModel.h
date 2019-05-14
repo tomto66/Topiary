@@ -75,7 +75,6 @@ public:
 	virtual void generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer);
 	virtual bool processVariationSwitch();
 	virtual bool switchingVariations();
-	virtual void getVariationDetailForGenerateMidi(int& parent, int& noteChild, int& parentLength, bool& ending, bool& ended);
 	
 	void setWFFN(bool wffn);
 	bool getWFFN();
