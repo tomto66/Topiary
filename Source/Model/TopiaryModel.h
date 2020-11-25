@@ -60,7 +60,7 @@ public:
 	void getTransportState(int& b, int& n, int& d, int& bs, bool& o, bool &waitFFN);
 	virtual void setOverrideHostTransport(bool o);
 	void removeRecordButton();
-	void setRunState(int n);
+	virtual void setRunState(int n);
 	int getRunState();
 	void processTransportControls(int buttonEnabled); // // buttonEnabled; 0=Stop; 1=start; 2=rec
 	

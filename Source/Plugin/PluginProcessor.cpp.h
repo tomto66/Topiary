@@ -258,11 +258,6 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 	for (MidiBuffer::Iterator it(midiMessages); it.getNextEvent(msg, ignore);)
 	{
 	
-#ifdef Riffz
-		if (msg.isNoteOn() || msg.isNoteOff())
-			model.processNote(msg);
-			
-#endif
 		if (msg.isNoteOn())
 		{
 			if (!model.midiLearn(msg)) {
@@ -274,8 +269,16 @@ void TopiaryAudioProcessor::processBlock(AudioBuffer<float>& buffer, MidiBuffer&
 				}
 
 				model.processAutomation(msg); // because we may have switching by notes
+
+#ifdef RIFFZ
+				model.keytrack(msg.getNoteNumber());
+#endif
 			}
 		}
+#ifdef RIFFZ
+		else if (msg.isNoteOff())
+			model.keytracker.pop(msg.getNoteNumber());
+#endif
 		else
 		{
 			if (msg.isController())

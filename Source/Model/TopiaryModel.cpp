@@ -384,7 +384,7 @@ void TopiaryModel::setBPM(int n)
 
 void TopiaryModel::setRunState(int n)
 {
-	
+	jassert(false);
 	// only call with false when called from generateMidi - because there we already have the lock!
 
 	int remember;

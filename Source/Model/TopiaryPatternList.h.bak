@@ -20,9 +20,6 @@ along with Topiary. If not, see <https://www.gnu.org/licenses/>.
 #pragma once
 #include "TopiaryListModel.h"
 
-#ifdef TOPIARYMODEL
-class TOPIARYMODEL; // needs to be a defined model!
-
 class TopiaryPatternList : public TopiaryListModel
 { 
 
@@ -30,14 +27,13 @@ public:
 	TopiaryPatternList();
 	~TopiaryPatternList();
 
-	void setModel(TOPIARYMODEL* m);
 	void sortByID() override; // sort by index n (order in which the variables are in the struct
 	void del(int n) override;
 	void add() override;
 	void duplicate(int i);
 	void addToModel(XmlElement *model);
 	void getFromModel(XmlElement *model);
-	void validateTableEdit(int p, XmlElement* child, String attribute) override;
+
 	static const int maxItems = MAXNOPATTERNS;
 	
 	struct data // MUST match what has been defined in the headerlist data!!!
@@ -45,7 +41,7 @@ public:
 		int ID;
 		String name;
 		int measures;
-	}; 
+	};
 	
 	data dataList[maxItems];
 	 
@@ -57,7 +53,6 @@ public:
 	
 
 private:
-	TOPIARYMODEL* m;
 
 	void swap(int from, int to)
 	{
@@ -68,4 +63,3 @@ private:
 	
 }; // TopiaryPatternList
 
-#endif
