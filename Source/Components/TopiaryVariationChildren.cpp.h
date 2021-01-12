@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 /*
-This file is part of Topiary, Copyright Tom Tollenaere 2018-20.
+This file is part of Topiary, Copyright Tom Tollenaere 2018-21.
 
 Topiary is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -266,6 +266,8 @@ void  RandomNoteComponent::paint(Graphics& g)
 // SwingComponent
 /////////////////////////////////////////////////////////////////////////
 
+#if defined(RIFFZ) ||defined(BEATZ)
+
 SwingComponent::SwingComponent()
 {
 	pool1Button.setClickingTogglesState(true);
@@ -407,6 +409,8 @@ void  SwingComponent::paint(Graphics& g)
 	swingSlider.setLookAndFeel(&rndLookAndFeel);
 
 } // paint
+
+#endif 
 
 /////////////////////////////////////////////////////////////////////////
 // VariationDefinitionComponent
@@ -1297,6 +1301,8 @@ void  SwingComponent::paint(Graphics& g)
 // SwingQComponent
 /////////////////////////////////////////////////////////////////////////
 
+#if defined(RIFFZ) || defined(BEATZ) 
+
 	SwingQComponent::SwingQComponent()
 	{
 		setSize(width, heigth);
@@ -1375,8 +1381,9 @@ void  SwingComponent::paint(Graphics& g)
 		eightButton.setBounds(eBounds);
 
 	} // paint
+#endif
 
-#ifndef BEATZ
+#ifdef RIFFZ
 
 	/////////////////////////////////////////////////////////////////////////
 	// NoteLengthComponent

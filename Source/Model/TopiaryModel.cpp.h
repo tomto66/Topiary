@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 /*
-This file is part of Topiary, Copyright Tom Tollenaere 2018-20.
+This file is part of Topiary, Copyright Tom Tollenaere 2018-21.
 
 Topiary is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -34,9 +34,7 @@ CAREFUL: needs a symbol TOPIARYMODEL to actually build!
 
 void TOPIARYMODEL::setRunState(int n)
 {
-
-	// only call with false when called from generateMidi - because there we already have the lock!
-
+	
 	int remember;
 	remember = runState;  // needed because in 1 case setting to Armed should fail!!!
 	bool varEnabled = false;
@@ -119,14 +117,47 @@ void TOPIARYMODEL::setRunState(int n)
 				Log("Cannot run because there is no variation enabled.", Topiary::LogType::Warning);
 				runState = Topiary::Stopped;
 			}
+#ifdef RIFFZ
+			
+			if (recordingMidi)
+			{
+				if (patternSelectedInPatternEditor == -1)
+				{
+					Log("No pattern selected in pattern editor.", Topiary::LogType::Warning);
+					Log("Recording turned off.", Topiary::LogType::Warning);
+					recordingMidi = false;
+					broadcaster.sendActionMessage(MsgTransport);
+				}
+				else
+				{
+					// If we can arm and recording is on, we need to make a copy of the pattern selected in patternEditor, into variation[8]
+					int numItems = patternData[patternSelectedInPatternEditor].numItems;
+					TopiaryVariation* v = &(variation[8].pattern[0]);
+					TopiaryPattern* p = &(patternData[patternSelectedInPatternEditor]);
 
+					v->patLenInTicks = p->patLenInTicks;
+					v->numItems = numItems;
+					for (int i = 0; i < numItems; i++)
+					{
+						//v->dataList[i].CC = p->dataList[i].CC;
+						v->dataList[i].note = p->dataList[i].note;
+						v->dataList[i].length = p->dataList[i].length;
+						v->dataList[i].velocity = p->dataList[i].velocity;
+						v->dataList[i].timestamp = p->dataList[i].timestamp;
+						v->dataList[i].midiType = p->dataList[i].midiType;
+						v->dataList[i].channel = p->dataList[i].channel;
+						v->dataList[i].value = p->dataList[i].value;
+					}
+				}
+			}
+
+#endif
+			broadcaster.sendActionMessage(MsgTransport);
 			break;
 		default:
 			break;
 
 		}
-
-		broadcaster.sendActionMessage(MsgTransport);
 
 	}
 
@@ -138,12 +169,18 @@ void TOPIARYMODEL::setRunState(int n)
 	}
 	else
 	{
+#ifdef PRESETZ
+		if (!fakeRun)
+#endif
 		setVariation(variationSelected);	// so that if the button was orange, it becomes blue again
 	}
 
 	// now the first waiting variation might stil be orange; fix that below
 	if (remember == Topiary::Armed)
-		setVariation(variationSelected);
+#ifdef PRESETZ
+		if (!fakeRun)
+#endif
+			setVariation(variationSelected);
 
 } // setRunState
 
@@ -217,6 +254,12 @@ void TOPIARYMODEL::setNumeratorDenominator(int nu, int de)
 		recalcRealTime();
 		Log(String("Signature set to ") + String(numerator) + String("/") + String(denominator), Topiary::LogType::Transport);
 		broadcaster.sendActionMessage(MsgTransport);	
+#ifdef PRESETZ
+		for (int v = 0; v < 8; v++)
+		{
+			variation[v].pattern.patLenInTicks = de * Topiary::TicksPerQuarter;
+		}
+#endif
 	}
 
 } // setNumeratorDenominator
@@ -252,11 +295,22 @@ void TOPIARYMODEL::setVariation(int n)
 		Log("Cannot switch to disabled variation.", Topiary::LogType::Warning);
 		return;
 	}
-	if ((n != variationSelected) || (runState == Topiary::Stopped))
-		// the || runState || is needed because we may need to re-set a waiting variation to non-waiting; in that case we want the update to happen otherwise the buttons stays orange
-	{
-		const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
 
+#ifdef PRESETZ
+	//	outputVariationEvents(); // output the variation preset values!
+	if ((n != variationSelected)  && (runState != Topiary::Running) && variation[variationSelected].enabled && !fakeRun)
+	{
+		fakeRun = true; // will be reset when the transition ends in generateMidi
+		rememberFakeRunState = runState;
+		runState = Topiary::Armed;
+		rememberVariationStartQ = variationStartQ;
+		variationStartQ = Topiary::Quantization::Immediate;
+	}
+#endif
+
+	if ((n != variationSelected) || (runState == Topiary::Stopped))
+		// the || runState is needed because we may need to re-set a waiting variation to non-waiting; in that case we want the update to happen otherwise the buttons stays orange
+	{
 		variationSelected = n;
 		if (runState == Topiary::Stopped)  // otherwise the switch will be done when running depending on the variation switch Q
 			variationRunning = n;
@@ -264,12 +318,7 @@ void TOPIARYMODEL::setVariation(int n)
 		broadcaster.sendActionMessage(MsgVariationSelected);  // if the editor is there it will pick up the change in variation	
 	}
 
-#ifdef PRESETZ
-	if ((runState != Topiary::Running) && variation[variationSelected].enabled)
-		// we ALWAYS do this - even if the variation does not change (because we may wanna hit the variation button to reset it (presetz)
-		// so even if WFFN is on - as long as we are waiting wo do an immediate output of the variation settings!
-		outputVariationEvents(); // output the variation preset values!
-#endif
+
 } // setVariation
 
 ///////////////////////////////////////////////////////////////////////
@@ -293,6 +342,10 @@ int TOPIARYMODEL::getVariationLenInTicks(int v)
 #if defined(RIFFZ)
 	// we are assuming that all patterns in one variation have same length, so just pick one and return that.
 	return variation[v].pattern[0].patLenInTicks;
+#endif
+#if defined(PADZ)
+	jassert(false);
+	return 0;
 #endif
 
 } // getVariationLenInTicks
@@ -350,7 +403,7 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 #endif
 
 #ifdef RIFFZ
-	Logger::outputDebugString("ENTERING PROCESSVARIATIONSWITH Blockcursor ; " + String(blockCursor));
+	//Logger::outputDebugString("ENTERING PROCESSVARIATIONSWITH Blockcursor ; " + String(blockCursor));
 	if ((variationSelected == variationRunning) && (keytracker.notePlaying == keytracker.nextNotePlaying) && latch1) return false;  // why latch ???
 #endif
 
@@ -461,44 +514,27 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 			// so decide where in the variation we start - we need to set patternCursor
 
 			processStartQ();
-			/*
-			patternCursor = (int)floor(blockCursor / samplesPerTick) % getVariationLenInTicks(variationSelected);
-
-			switch (switchVariation)
-			{
-			case (Topiary::SwitchFromStart):
-				patternCursorOffset = patternCursor;
-				//Logger::outputDebugString("PatternCursorOffset in PROCESSVARIATIONSWITCH: " + String(patternCursorOffset));
-				//Logger::outputDebugString("Blockcursor ; " + String(blockCursor));
-				break;
-			case (Topiary::SwitchWithinBeat):
-				patternCursorOffset = 0;
-				patternCursor = patternCursor % Topiary::TicksPerQuarter;
-				break;
-			case (Topiary::SwitchWithinMeasure):
-				patternCursorOffset = 0;
-				patternCursor = patternCursor % (Topiary::TicksPerQuarter * numerator);
-				break;
-			case (Topiary::SwitchWithinPattern):
-				patternCursorOffset = 0;
-				patternCursor = patternCursor % (getVariationLenInTicks(variationSelected));
-				break;
-			}
-			*/
+			
 			Log(String("Switch from variation ") + String(variationRunning) + String(" to ") + String(variationSelected), Topiary::LogType::Variations);
 			variationRunning = variationSelected;
-
-#ifdef RIFFZ
-			maintainParentPattern();
-#endif
 
 			if (variation[variationRunning].type == Topiary::VariationTypeSteady)
 				previousSteadyVariation = variationRunning;
 
 			broadcaster.sendActionMessage(MsgVariationSelected);
+#ifdef RIFFZ
+			cursorToStop = -1;  // so that in case of a pattern latching to end, the endpoint calculation gets reset
+			keytracker.lastNotePlaying = -1;
+			if ((keytracker.notePlaying != keytracker.nextNotePlaying) && (!latch1))
+				keytracker.notePlaying = keytracker.nextNotePlaying;
+			maintainParentPattern();
+			
+#endif
+			
 		} // if variation switch
 
 #ifdef RIFFZ
+		
 		// check if we have a noteswitch and hence pattern switch
 
 		if (latch2 && (keytracker.notePlaying != keytracker.nextNotePlaying) && (cursorToStop != -1) && (keytracker.nextNotePlaying != -1))
@@ -529,9 +565,7 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 					cursorToStop = -1; // because we may 'restart' a pattern that was still 'ending' so ignore previous value of cursortostop
 				}
 			}
-			//else if (latch2 && keytracker.nextNotePlaying == -1)
-			//{
-			//}
+			
 				
 			else if (keytracker.lastNotePlaying != -1)
 			{
@@ -591,7 +625,7 @@ bool TOPIARYMODEL::processVariationSwitch() // called just before generateMidi -
 				}
 			}
 		}
-#endif
+#endif // ifdef RIFFZ
 		return true;
 	} // decide to switch NOW
 	else return false;
@@ -697,11 +731,8 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 #ifdef PRESETZ
 	UNUSED(recBuffer)
 #endif
-#ifdef RIFFZ
-	UNUSED(recBuffer)
-#endif
 
-#ifdef BEATZ
+#if defined(BEATZ) || defined(RIFFZ)
 
 
 		////////////////////////////////////////
@@ -721,30 +752,71 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		for (const MidiMessageMetadata metadata : *recBuffer)
 		{
 			msg = metadata.getMessage();
-	
-			if (msg.isNoteOn() || msg.isNoteOff())
+			int midiType = -1;
+			if (msg.isNoteOn())
+				midiType = Topiary::NoteOn;
+			else if (msg.isNoteOff())
+				midiType = Topiary::NoteOff;
+			else if (msg.isController())
+				midiType = Topiary::CC;
+			else if (msg.isPitchWheel())
+				midiType = Topiary::Pitch;
+			else if (msg.isAftertouch())
+				midiType = Topiary::AfterTouch;
+
+			if ((midiType==Topiary::NoteOn) || (midiType == Topiary::NoteOn) 
+#ifdef RIFFZ
+				|| (midiType == Topiary::Pitch) || (midiType == Topiary::CC) || (midiType == Topiary::AfterTouch)
+#endif
+				)
 			{
 				if (varpat == nullptr)
+				{
+#ifdef BEATZ
 					varpat = &(variation[variationRunning].pattern);
+#endif
+#ifdef RIFFZ
+					varpat = &(variation[8].pattern[0]);
+#endif
+				}
 				varpat->add();
 				int nIndex = varpat->numItems - 1;
 				varpat->dataList[nIndex].ID = -1; // dummy
-				varpat->dataList[nIndex].note = msg.getNoteNumber();
-				varpat->dataList[nIndex].velocity = msg.getVelocity();
-				varpat->dataList[nIndex].channel = msg.getChannel();
+				if ((midiType == Topiary::NoteOn) || (midiType == Topiary::NoteOff))
+				{
+					varpat->dataList[nIndex].note = msg.getNoteNumber();
+					varpat->dataList[nIndex].velocity = msg.getVelocity();
+					varpat->dataList[nIndex].channel = msg.getChannel();
+				}
+				else if (midiType == Topiary::CC)
+				{
+					varpat->dataList[nIndex].CC = msg.getControllerNumber();
+					varpat->dataList[nIndex].velocity = msg.getControllerValue();
+				}
+				else if (midiType == Topiary::Pitch)
+				{
+					varpat->dataList[nIndex].velocity = msg.getPitchWheelValue();
+				}
+				else if (midiType == Topiary::AfterTouch)
+				{
+					varpat->dataList[nIndex].velocity = msg.getAfterTouchValue();
+				}
+
 				varpat->dataList[nIndex].length = -1; // so we know not to generate a noteOff event (because the noteOff will follow)
 
-				if (msg.isNoteOn())
-					varpat->dataList[nIndex].midiType = Topiary::MidiType::NoteOn;
-				else
-					varpat->dataList[nIndex].midiType = Topiary::MidiType::NoteOff;
+				varpat->dataList[nIndex].midiType = midiType;
 
 				int64 cursorInTicks = (int64)floor(blockCursor / samplesPerTick) + (int)(samplePos / samplesPerTick);
+#ifdef BEATZ
 				cursorInTicks = cursorInTicks % variation[variationSelected].pattern.patLenInTicks;
+#endif
+#ifdef RIFFZ
+				cursorInTicks = cursorInTicks % variation[8].pattern[0].patLenInTicks;
+#endif
 
 				varpat->dataList[nIndex].timestamp = (int)cursorInTicks;
 				//Logger::outputDebugString("RECORDING");
-			} // noteOn or noteOff
+			} // 
 		} // iterator over recordBuffer
 
 		// reset patternchild to nullptr so the rest of the logic can restart (because we may have messed with patternchild
@@ -782,12 +854,21 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 #if defined(RIFFZ)
 		// in RIFFZ parentPattern is global in the model
 		// and it is maintained by processvariationSwitch
+		// except when recording
+		if (recordingMidi)
+			parentPattern = &(variation[8].pattern[0]);
+
 		parentLength = parentPattern->patLenInTicks;
 #endif
 
+		patternCursor = (int)patternCursor % parentLength;
+
+#if defined(BEATZ) || defined(RIFFZ)
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// GENERATE AHEAD LOGIC
 		// given we now know where we are in patternCursor, and given how many ticks in the pattern we do per block (blocksize), 
 		// we can now estimate whether we just ran over 1/8 (and whether we are about to run over the end of the pattern)
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 		patternCursor = (int)patternCursor % parentLength;
 		int patternSpan = (int)(blockSize / samplesPerTick);
@@ -817,17 +898,21 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 		
 		if ((eightToGenerate != -1) && !recordingMidi)
 		{
-			Logger::outputDebugString("generate eight " + String(eightToGenerate));
+			//Logger::outputDebugString("generate eight " + String(eightToGenerate));
 			generateVariation(variationRunning, eightToGenerate);
 		}
+#endif // generateAheadLogic
 
 		noteChild = 0; // variation[variationRunning].currentPatternChild;
 
 		int nextPatternCursor;  // patternCursor is global and remembers the last one we generated
 
-		//Logger::outputDebugString("Next note on to generate afer current tick " + String(patternCursor));
+		//Logger::outputDebugString("Next note on to generate after current tick " + String(patternCursor));
 
 		bool walk;
+
+		//if (!variation[variationRunning].ended) 
+		//	Logger::outputDebugString(String("Variation NOT ended"));
 
 		if (!(variation[variationRunning].type == Topiary::VariationTypeEnd) || ((variation[variationRunning].type == Topiary::VariationTypeEnd) && !variation[variationRunning].ended))
 		{
@@ -837,7 +922,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 			walk = false; // meaning an ending variation and ended
 
 
-		//Logger::outputDebugString(String("Walk: ") + String((int)walk));
+		//if (walk) Logger::outputDebugString(String("Walk: ") + String((int)walk));
 		
 		if (walk)
 		{
@@ -864,17 +949,24 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 					if (variation[variationRunning].type == Topiary::VariationTypeEnd)
 					{
 						// this is an ending variation and it has now ended - do nothing (but keep running)
-						//Log("Ended ---------------------------------------", Topiary::LogType::Variations);
+						Log("Ended ---------------------------------------", Topiary::LogType::Variations);
 						variation[variationRunning].ended = true;
 						rtCursor = rtCursorTo; // prevent next if to pass so nothing further is generated
+#ifdef PRESETZ
+						// now we must restore stuff to not running
+						if (fakeRun)
+						{
+							fakeRun = false;
+							setRunState(rememberFakeRunState);
+							broadcaster.sendActionMessage(MsgTransport); 
+							variationStartQ = rememberVariationStartQ;
+						}
+#endif
 					}
 					else if (runState == Topiary::Ending)
 					{
 						setRunState(Topiary::TransportRunState::Stopped); 
-#ifdef RIFFZ
-						//if (latch2)   YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-						//	setRunState(Topiary::TransportRunState::Armed);
-#endif
+
 						//Log("Ended ---------------------------------------", Topiary::LogType::Variations);
 						rtCursor = rtCursorTo; // prevent next if to pass so nothing further is generated
 					}
@@ -889,30 +981,7 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 					//Logger::outputDebugString(String("Next Patcursor ") + String(nextPatternCursor));
 
 					////// GENERATE MIDI EVENT
-					int midiType = parentPattern->dataList[noteChild].midiType;
-
-					/* OLD GENERATE PATTERN LOGIC
-					int pMeasure = (int)floor(parentPattern->dataList[noteChild].timestamp / (numerator * Topiary::TicksPerQuarter));
-					
-					if (pMeasure != previousMeasure)
-					{					
-#ifndef PRESETZ
-						if (!recordingMidi) // because we do not want to lose the recorded notes!
-						{
-							if (previousMeasure == -1)
-								generateVariation(variationRunning, 0); // make sure we do the first one, always !!!
-							else
-								generateVariation(variationRunning, pMeasure + 1); // the others we do one ahead to preven early notes from dropping
-
-							// DO WE NEED TO WALK HERE - I THINK WE CAN AVOID IT !!!! 
-							noteChild = 0;
-							walkToTick(parentPattern, noteChild, patternCursor);
-							midiType = parentPattern->dataList[noteChild].midiType;
-						}
-#endif
-						previousMeasure = pMeasure;
-						
-					} ***********************************/
+					int midiType = parentPattern->dataList[noteChild].midiType;		
 
 					if ((variation[variationRunning].type == Topiary::VariationTypeFill) && (variationRunning == variationSelected))
 					{
@@ -980,18 +1049,11 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 						if (midiType == Topiary::MidiType::NoteOn)
 						{
 							msg = MidiMessage::noteOn(channel, noteNumber, (juce::uint8)parentPattern->dataList[noteChild].velocity);
-							jassert(msg.getVelocity() > 126);
+							//jassert(msg.getVelocity() > 126);
 						}
 						else if (midiType == Topiary::MidiType::NoteOff)
 							msg = MidiMessage::noteOff(channel, noteNumber, (juce::uint8)0);
-						/*
-						else if (midiType == Topiary::MidiType::CC)
-							msg = MidiMessage::controllerEvent(channel, noteNumber, parentPattern->dataList[noteChild].value);  // noteNumber is also CC number
-						else if (midiType == Topiary::MidiType::AfterTouch)
-							msg = MidiMessage::channelPressureChange(channel, value);
-						else if (midiType == Topiary::MidiType::Pitch)
-							msg = MidiMessage::pitchWheel(channel, value);
-						*/
+						
 
 						// DEBUG LOGIC !!!!!!!!!
 						// outputting the pattern tick values + the tick value in the generated pattern
@@ -1021,6 +1083,12 @@ void TOPIARYMODEL::generateMidi(MidiBuffer* midiBuffer, MidiBuffer* recBuffer)
 						midiBuffer->addEvent(msg, (int)timestamp);
 						if (logMidiOut)
 							logMidi(false, msg);
+						//Logger::outputDebugString(String("Outputting Note")+String(noteNumber));
+						// DEBUG
+						//if ((noteNumber == rememberNoteDebug) && (rememberTimeDebug == parentPattern->dataList[noteChild].timestamp))
+						//	Logger::outputDebugString(String("Duplicate Note") + String(noteNumber));
+						//rememberNoteDebug = noteNumber;
+						//rememberTimeDebug = parentPattern->dataList[noteChild].timestamp;
 					}
 					else if (midiType == Topiary::MidiType::CC)
 					{
@@ -1404,7 +1472,7 @@ void TOPIARYMODEL::validateTableEdit(int p, XmlElement* child, String attribute)
 	else if (child->hasAttribute("Measures"))
 	{
 		// edited the patternlist
-		broadcaster.sendActionMessage(MsgPatternList);
+			broadcaster.sendActionMessage(MsgPatternList);
 #ifdef RIFFZ
 		// in case we change pattern name, rename in the note assignments
 		if (p>-1)
@@ -1419,6 +1487,513 @@ void TOPIARYMODEL::validateTableEdit(int p, XmlElement* child, String attribute)
 } // validateTableEdit
 
 #endif // for validateTableEdits
+
+///////////////////////////////////////////////////////////////////////
+// State logic
 ///////////////////////////////////////////////////////////////////////
 
+#if defined RIFFZ || defined BEATZ || defined PADZ
+bool TOPIARYMODEL::getLockState()
+{
+	return lockState;
+}
+
+void TOPIARYMODEL::setLockState(bool state)
+{
+	lockState = state;
+	broadcaster.sendActionMessage(MsgLockState);
+}
+
+void TOPIARYMODEL::saveState()
+{
+	addParametersToModel();
+}
+
+void TOPIARYMODEL::restoreState()
+{
+	restoreParametersToModel();
+}
+
+#endif // ifdef RIFFZ
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Plugin Parameters Logic
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#if defined RIFFZ || defined BEATZ  || defined PADZ
+void TOPIARYMODEL::processPluginParameters()
+{
+	// check whether we are running or not as that defines which variation it applies to!!!
+
+	int var;
+	if (runState == Topiary::Running)
+		var = variationRunning;
+	else
+		var = variationSelected;
+
+
+	///////////////////////////////
+	// RANDOM NOTE LENGTH
+	///////////////////////////////
+#if defined(RIFFZ)
+	auto currentRndNoteLen = rndNoteLength->get();  // between 0 and 100
+
+	if (prevRndNoteLength != -1)
+	{
+		if (abs(prevRndNoteLength - currentRndNoteLen) > 0.99)
+		{
+			if (variation[var].lengthValue != (int)currentRndNoteLen)
+			{
+				variation[var].lengthValue = (int)currentRndNoteLen;
+				prevRndNoteLength = currentRndNoteLen;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+	}
+	else
+	{
+		prevRndNoteLength = currentRndNoteLen; // init
+		//Log("INIT value not processed: " + String(currentRndNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	int currentBoolNoteLen = (int)boolNoteLength->get();  // between 0 and 100
+
+	if (prevBoolNoteLength != -1)
+	{
+		if (prevBoolNoteLength != currentBoolNoteLen)
+		{
+
+			if (variation[var].randomizeLength != (bool)currentBoolNoteLen)
+			{
+				Log("Currentbool " + String(currentBoolNoteLen), Topiary::LogType::Info);
+				variation[var].randomizeLength = (bool)currentBoolNoteLen;
+				prevBoolNoteLength = currentBoolNoteLen;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+
+		}
+
+	}
+	else
+	{
+		prevBoolNoteLength = currentBoolNoteLen; // init
+		//Log("INIT value not processed: " + String(currentBoolNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+#endif // ifdef RIFFZ - random note length
+
+	///////////////////////////////
+	// RANDOM NOTE OCCURRENCE
+	///////////////////////////////
+
+	auto currentRndNoteOccurrence = rndNoteOccurrence->get();  // between 0 and 100
+
+	if (prevRndNoteOccurrence != -1)
+	{
+		if (abs(prevRndNoteOccurrence - currentRndNoteOccurrence) > 0.99)
+		{
+			if (variation[var].randomizeNotesValue != (int)currentRndNoteOccurrence)
+			{
+				variation[var].randomizeNotesValue = (int)currentRndNoteOccurrence;
+				prevRndNoteOccurrence = currentRndNoteOccurrence;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+	}
+	else
+	{
+		prevRndNoteOccurrence = currentRndNoteOccurrence; // init
+		//Log("INIT value not processed: " + String(currentRndNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	int currentBoolNoteOccurrence = (int)boolNoteOccurrence->get();  // between 0 and 127
+
+	if (prevBoolNoteOccurrence != -1)
+	{
+		if (prevBoolNoteOccurrence != currentBoolNoteOccurrence)
+		{
+
+			if (variation[var].randomizeNotes != (bool)currentBoolNoteOccurrence)
+			{
+				//Log("Currentbool " + String(currentBoolNoteLen), Topiary::LogType::Info);
+				variation[var].randomizeNotes = (bool)currentBoolNoteOccurrence;
+				prevBoolNoteOccurrence = currentBoolNoteOccurrence;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+
+	}
+	else
+	{
+		prevBoolNoteOccurrence = currentBoolNoteOccurrence; // init
+		//Log("INIT value not processed: " + String(currentBoolNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	///////////////////////////////
+	// SWING
+	///////////////////////////////
+#ifndef PADZ
+	auto currentSwingAmount = swingAmount->get();  // between 0 and 100
+
+	if (prevSwingAmount != -1)
+	{
+		if (abs(prevSwingAmount - currentSwingAmount) > 0.99)
+		{
+			if (variation[var].swingValue != (int)currentSwingAmount)
+			{
+				variation[var].swingValue = (int)currentSwingAmount;
+				prevSwingAmount = currentSwingAmount;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+	}
+	else
+	{
+		prevSwingAmount = currentSwingAmount; // init
+		//Log("INIT value not processed: " + String(currentRndNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	int currentBoolSwing = (int)boolSwing->get();  // between 0 and 127
+
+	if (prevBoolSwing != -1)
+	{
+		if (prevBoolSwing != currentBoolSwing)
+		{
+
+			if (variation[var].swing != (bool)currentBoolSwing)
+			{
+				//Log("Currentbool " + String(currentBoolNoteLen), Topiary::LogType::Info);
+				variation[var].swing = (bool)currentBoolSwing;
+				prevBoolSwing = currentBoolSwing;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+
+	}
+	else
+	{
+		prevBoolSwing = currentBoolSwing; // init
+		//Log("INIT value not processed: " + String(currentBoolNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+#endif // not define PADS
+
+	///////////////////////////////
+	// TIMING
+	///////////////////////////////
+
+	auto currentRndTiming = rndTiming->get();  // between 0 and 100
+
+	if (prevRndTiming != -1)
+	{
+		if (abs(prevRndTiming - currentRndTiming) > 0.99)
+		{
+			if (variation[var].timingValue != (int)currentRndTiming)
+			{
+				variation[var].timingValue = (int)currentRndTiming;
+				prevRndTiming = currentRndTiming;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+	}
+	else
+	{
+		prevRndTiming = currentRndTiming; // init
+		//Log("INIT value not processed: " + String(currentRndNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	int currentBoolTiming = (int)boolTiming->get();  // between 0 and 127
+
+	if (prevBoolTiming != -1)
+	{
+		if (prevBoolTiming != currentBoolTiming)
+		{
+
+			if (variation[var].randomizeTiming != (bool)currentBoolTiming)
+			{
+				//Log("Currentbool " + String(currentBoolNoteLen), Topiary::LogType::Info);
+				variation[var].randomizeTiming = (bool)currentBoolTiming;
+				prevBoolTiming = currentBoolTiming;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+
+	}
+	else
+	{
+		prevBoolTiming = currentBoolTiming; // init
+		//Log("INIT value not processed: " + String(currentBoolNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+
+	///////////////////////////////
+	// VELOCITY
+	///////////////////////////////
+
+	auto currentRndVelocity = rndVelocity->get();  // between 0 and 100
+
+	if (prevRndVelocity != -1)
+	{
+		if (abs(prevRndVelocity - currentRndVelocity) > 0.99)
+		{
+			if (variation[var].velocityValue != (int)currentRndVelocity)
+			{
+				variation[var].velocityValue = (int)currentRndVelocity;
+				prevRndVelocity = currentRndVelocity;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+	}
+	else
+	{
+		prevRndVelocity = currentRndVelocity; // init
+		//Log("INIT value not processed: " + String(currentRndNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+
+	int currentBoolVelocity = (int)boolVelocity->get();  // between 0 and 127
+
+	if (prevBoolVelocity != -1)
+	{
+		if (prevBoolVelocity != currentBoolVelocity)
+		{
+
+			if (variation[var].randomizeVelocity != (bool)currentBoolVelocity)
+			{
+				//Log("Currentbool " + String(currentBoolNoteLen), Topiary::LogType::Info);
+				variation[var].randomizeVelocity = (bool)currentBoolVelocity;
+				prevBoolVelocity = currentBoolVelocity;
+				//Log("UPDATING VARIATION " + String(var), Topiary::LogType::Info);
+				broadcaster.sendActionMessage(MsgVariationDefinition);
+			}
+		}
+
+	}
+	else
+	{
+		prevBoolVelocity = currentBoolVelocity; // init
+		//Log("INIT value not processed: " + String(currentBoolNoteLen), Topiary::LogType::Info);
+		broadcaster.sendActionMessage(MsgVariationDefinition);
+
+	}
+} // processPluginParameters
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+void TOPIARYMODEL::processMidiRecording()
+{
+	// process recorded events and add to pattern
+
+	int patPos; // where to insert the new events
+
+#ifdef BEATZ
+	int loopLen = variation[variationSelected].pattern.numItems;
+	TopiaryPattern* pat = &(patternData[variation[variationSelected].patternToUse]);
+	TopiaryVariation *var = &(variation[variationSelected].pattern);
 #endif
+#ifdef RIFFZ
+	int loopLen = variation[8].pattern[0].numItems;
+	TopiaryVariation* var = &(variation[8].pattern[0]);
+	TopiaryPattern* pat = &(patternData[patternSelectedInPatternEditor]);
+#endif
+#ifdef PADZ
+	int loopLen = variation[8].pattern[0].numItems;
+	TopiaryVariation* var = &(variation[8].pattern[0]);
+	TopiaryPattern* pat = &(patternData[patternSelectedInPatternEditor]);
+	jassert(false);
+#endif
+	// loop over the variation and look for IDs == -1
+	for (int v=0; v < loopLen; v++)
+	{
+		if (var->dataList[v].length == -1) // newly recorded elements get lenght -1 because we do not know their length yet
+		{
+			int midiType = var->dataList[v].midiType;
+			if ((midiType == Topiary::MidiType::NoteOn) || (midiType == Topiary::MidiType::CC) || (midiType == Topiary::MidiType::Pitch) || (midiType == Topiary::MidiType::AfterTouch))
+			{
+				patPos = pat->numItems;
+				pat->add();
+
+				pat->dataList[patPos].ID = -1; // will be renumbered later
+				pat->dataList[patPos].note = 0;
+
+				if (midiType == Topiary::NoteOn)
+				{
+					pat->dataList[patPos].note = var->dataList[v].note;
+					pat->dataList[patPos].label = noteNumberToString(var->dataList[v].note);
+					pat->dataList[patPos].length = 0; // wil be calculated next
+				}
+				else if (midiType == Topiary::Pitch)
+					pat->dataList[patPos].label = "Pitch";
+				else if (midiType == Topiary::AfterTouch)
+					pat->dataList[patPos].label = "AT";
+				else if (midiType == Topiary::CC)
+				{
+					pat->dataList[patPos].label = "CC";
+					pat->dataList[patPos].length = var->dataList[v].CC;
+				}
+
+				pat->dataList[patPos].velocity = var->dataList[v].velocity; // also for CC, AT and Pitch values			
+
+				pat->dataList[patPos].timestamp = var->dataList[v].timestamp;
+				int measur = (int)floor(var->dataList[v].timestamp / (numerator * Topiary::TicksPerQuarter));
+				pat->dataList[patPos].measure = measur;
+				int timestamp = var->dataList[v].timestamp - measur * (numerator * Topiary::TicksPerQuarter);
+				int bea = (int)floor(timestamp / Topiary::TicksPerQuarter);
+				pat->dataList[patPos].beat = bea;
+				int tic = timestamp - bea * Topiary::TicksPerQuarter;
+				pat->dataList[patPos].tick = tic;
+				pat->dataList[patPos].midiType = midiType;
+			}
+			else if (var->dataList[v].midiType == Topiary::MidiType::NoteOff)
+			{
+				// find the note and set the length
+				int timestamp = var->dataList[v].timestamp; // timestamp of end of note
+				int note = var->dataList[v].note;
+				bool cont = true;
+				int pIndex = 0;
+				int numPats = pat->numItems;
+
+				while (cont && (pIndex<numPats))
+				{
+					if ((pat->dataList[pIndex].ID == -1) && (pat->dataList[pIndex].note  == note) && (pat->dataList[pIndex].midiType == Topiary::MidiType::NoteOn))
+					{
+						// we found the note to end
+						pat->dataList[pIndex].length = timestamp - pat->dataList[pIndex].timestamp;
+						pat->dataList[pIndex].ID = -2; // so we don't cover it again
+						cont = false;
+					}
+					pIndex++;
+				}
+			}
+			else jassert(false); // should not happen; should be note on or note off event for now
+		}
+
+	}
+	// resort
+	pat->sortByTimestamp();
+
+	Logger::outputDebugString("------------------------");
+	for (int j = 0; j < pat->numItems; j++)
+	{
+		Logger::outputDebugString("<" + String(j) + "> <ID" + String(pat->dataList[j].ID) + "> Note: " + String(pat->dataList[j].note) + " timestamp " + String(pat->dataList[j].timestamp));
+	}
+	Logger::outputDebugString("------------------------");
+
+#ifdef BEATZ
+	// rebuild the pool list
+	rebuildPool(false);
+#endif
+
+	generateAllVariations(-1);
+	// inform pattern tab
+	broadcaster.sendActionMessage(MsgPattern);
+
+}  // processMidiRecording
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+bool TOPIARYMODEL::midiLearn(MidiMessage m)
+{
+	// called by processor; if midiLearn then learn based on what came in
+	const GenericScopedLock<CriticalSection> myScopedLock(lockModel);
+	bool remember = learningMidi;
+	if (learningMidi)
+	{
+		bool note = m.isNoteOn();
+		bool cc = m.isController();
+
+		if (note || cc)
+		{
+			// check the Id to learn; tells us what to set
+			if ((midiLearnID >= Topiary::LearnMidiId::variationSwitch) && (midiLearnID < (Topiary::LearnMidiId::variationSwitch + 8)))
+			{
+				// learning variation switch
+				if (note)
+				{
+					ccVariationSwitching = false;
+					variationSwitch[midiLearnID] = m.getNoteNumber();
+				}
+				else
+				{
+					ccVariationSwitching = true;
+					variationSwitch[midiLearnID] = m.getControllerNumber();
+				}
+				learningMidi = false;
+				Log("Midi learned", Topiary::LogType::Warning);
+				broadcaster.sendActionMessage(MsgVariationAutomation);	// update utility tab
+			}
+#ifdef RIFFZ
+			else if (note && (midiLearnID == Topiary::LearnMidiId::noteAssignmentNote))
+			{
+				// set in a global variable noteAssignmentNote ; then inform the variation tab to pick it up
+				noteAssignmentNote = m.getNoteNumber();
+				learningMidi = false;
+				Log("Midi learned", Topiary::LogType::Warning);
+				broadcaster.sendActionMessage(MsgNoteAssignmentNote);	// update note editor in Variation Tab
+			}
+			else if (note && ((midiLearnID == Topiary::LearnMidiId::keyrangeFrom) || (midiLearnID == Topiary::LearnMidiId::keyrangeTo)))
+			{
+				// set in a global variable noteAssignmentNote ; then inform the variation tab to pick it up
+				if ((midiLearnID == Topiary::LearnMidiId::keyrangeFrom))
+				{
+					keyRangeFrom = m.getNoteNumber();
+					if (keyRangeFrom > keyRangeTo)
+					{
+						keyRangeTo = keyRangeFrom;
+						Log("Inconsistent key range - 'to' reset as well.", Topiary::LogType::Warning);
+					}
+				}
+				else
+				{
+					keyRangeTo = m.getNoteNumber();
+					if (keyRangeFrom > keyRangeTo)
+					{
+						keyRangeFrom = keyRangeTo;
+						Log("Inconsistent key range - 'from' reset as well.", Topiary::LogType::Warning);
+					}
+
+				}
+				learningMidi = false;
+				Log("Midi learned", Topiary::LogType::Warning);
+				broadcaster.sendActionMessage(MsgKeyRangeAssignment);	// update not editors in master Tab
+			}
+#endif // ifdef RIFFZ
+
+		}
+	}
+
+	return remember;
+
+} // midiLearn
+
+///////////////////////////////////////////////////////////////////////////////////////
+
+
+#endif // RIFFZ & BEATZ & PADZ
+#endif   // ifdef TOPIARYMODEL
+
